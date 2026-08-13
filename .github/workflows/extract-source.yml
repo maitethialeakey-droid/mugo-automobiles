@@ -2,6 +2,8 @@ name: Expand source archive
 
 on:
 
+  workflow_dispatch:
+  
   push:
   
     paths:
@@ -42,6 +44,7 @@ jobs:
           
           git push
           
+
 
 
 
