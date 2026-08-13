@@ -22,7 +22,8 @@ import {
 } from "../../drizzle/schema";
 import { getDb } from "../db";
 import { storagePut } from "../storage";
-import { adminProcedure, protectedProcedure, publicProcedure, router } from "../_core/trpc";
+import { adminProcedure, inventoryProcedure, protectedProcedure, publicProcedure, router, salesProcedure, staffProcedure, supportProcedure } from "../_core/trpc";
+import { createPaymentIntent, getPaymentProviderConfig, paymentProviders } from "../paymentIntegration";
 
 const vehicleStatuses = ["draft", "published", "archived"] as const;
 const vehicleAvailability = ["available", "reserved", "sold"] as const;
@@ -179,20 +180,20 @@ export const marketplaceRouter = router({
       const query = input?.query?.trim().toLowerCase();
       return rows.filter((vehicle) => !query || `${vehicle.make} ${vehicle.model} ${vehicle.trim ?? ""} ${vehicle.location ?? ""}`.toLowerCase().includes(query)).map((vehicle) => ({ ...vehicle, media: media.filter((item) => item.vehicleId === vehicle.id) }));
     }),
-    adminList: adminProcedure.query(async () => {
+    adminList: staffProcedure.query(async () => {
       const db = await requireDb();
       const rows = await db.select().from(vehicles).orderBy(desc(vehicles.updatedAt));
       const media = rows.length ? await db.select().from(vehicleMedia).where(inArray(vehicleMedia.vehicleId, rows.map((vehicle) => vehicle.id))).orderBy(vehicleMedia.sortOrder) : [];
       return rows.map((vehicle) => ({ ...vehicle, media: media.filter((item) => item.vehicleId === vehicle.id) }));
     }),
-    create: adminProcedure.input(vehicleInput.extend({ status: z.enum(vehicleStatuses).default("draft") })).mutation(async ({ ctx, input }) => {
+    create: inventoryProcedure.input(vehicleInput.extend({ status: z.enum(vehicleStatuses).default("draft") })).mutation(async ({ ctx, input }) => {
       const db = await requireDb();
       const now = new Date();
       const published = input.status === "published";
       const result = await db.insert(vehicles).values({ ...input, createdById: ctx.user.id, listedAt: published ? now : null, publishedAt: published ? now : null });
       return { id: Number(result[0].insertId) };
     }),
-    clone: adminProcedure.input(z.object({ vehicleId: z.number().int().positive(), stockNumber: z.string().trim().min(3).max(48) })).mutation(async ({ ctx, input }) => {
+    clone: inventoryProcedure.input(z.object({ vehicleId: z.number().int().positive(), stockNumber: z.string().trim().min(3).max(48) })).mutation(async ({ ctx, input }) => {
       const db = await requireDb();
       const source = (await db.select().from(vehicles).where(eq(vehicles.id, input.vehicleId)).limit(1))[0];
       if (!source) throw new Error("Vehicle not found");
@@ -201,7 +202,7 @@ export const marketplaceRouter = router({
       });
       return { id: Number(result[0].insertId) };
     }),
-    updateStatus: adminProcedure.input(z.object({ vehicleId: z.number().int().positive(), status: z.enum(vehicleStatuses), availability: z.enum(vehicleAvailability).optional() })).mutation(async ({ input }) => {
+    updateStatus: inventoryProcedure.input(z.object({ vehicleId: z.number().int().positive(), status: z.enum(vehicleStatuses), availability: z.enum(vehicleAvailability).optional() })).mutation(async ({ input }) => {
       const db = await requireDb();
       const now = new Date();
       await db.update(vehicles).set({ status: input.status, ...(input.availability ? { availability: input.availability } : {}), ...(input.status === "published" ? { publishedAt: now, listedAt: now } : {}) }).where(eq(vehicles.id, input.vehicleId));
@@ -214,7 +215,7 @@ export const marketplaceRouter = router({
     }),
   }),
   uploads: router({
-    upload: adminProcedure.input(z.object({ dataUrl: z.string().max(8_000_000), fileName: z.string().min(1).max(320), purpose: z.enum(["vehicle_media", "vehicle_document", "bulk_import"]), vehicleId: z.number().int().positive().optional(), documentKind: z.enum(["condition_report", "auction_sheet", "other"]).optional() })).mutation(async ({ ctx, input }) => {
+    upload: inventoryProcedure.input(z.object({ dataUrl: z.string().max(8_000_000), fileName: z.string().min(1).max(320), purpose: z.enum(["vehicle_media", "vehicle_document", "bulk_import"]), vehicleId: z.number().int().positive().optional(), documentKind: z.enum(["condition_report", "auction_sheet", "other"]).optional() })).mutation(async ({ ctx, input }) => {
       const { mimeType, bytes } = decodeDataUrl(input.dataUrl);
       const safeName = input.fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
       const prefix = input.purpose === "vehicle_media" ? `vehicles/${input.vehicleId}/media` : input.purpose === "vehicle_document" ? `vehicles/${input.vehicleId}/documents` : `imports/${ctx.user.id}`;
@@ -259,7 +260,7 @@ export const marketplaceRouter = router({
         throw new Error("The file was stored, but its spreadsheet rows could not be read.");
       }
     }),
-    reorderMedia: adminProcedure.input(z.object({ vehicleId: z.number().int().positive(), mediaIds: z.array(z.number().int().positive()).min(1) })).mutation(async ({ input }) => {
+    reorderMedia: inventoryProcedure.input(z.object({ vehicleId: z.number().int().positive(), mediaIds: z.array(z.number().int().positive()).min(1) })).mutation(async ({ input }) => {
       const db = await requireDb();
       await Promise.all(input.mediaIds.map((id, index) => db.update(vehicleMedia).set({ sortOrder: index, isCover: index === 0 }).where(and(eq(vehicleMedia.id, id), eq(vehicleMedia.vehicleId, input.vehicleId)))));
       return { success: true };
@@ -326,21 +327,24 @@ export const marketplaceRouter = router({
       const result = await db.insert(inquiries).values({ ...input, buyerId: ctx.user?.id ?? null, status: "open" });
       return { id: Number(result[0].insertId) };
     }),
-    adminList: adminProcedure.query(async () => {
+    adminList: supportProcedure.query(async () => {
       const db = await requireDb();
       return db.select({ inquiry: inquiries, vehicle: vehicles }).from(inquiries).leftJoin(vehicles, eq(inquiries.vehicleId, vehicles.id)).orderBy(desc(inquiries.updatedAt));
     }),
     addMessage: protectedProcedure.input(z.object({ inquiryId: z.number().int().positive(), body: z.string().trim().min(1).max(4000) })).mutation(async ({ ctx, input }) => {
       const db = await requireDb();
       const inquiry = (await db.select().from(inquiries).where(eq(inquiries.id, input.inquiryId)).limit(1))[0];
-      if (!inquiry || (ctx.user.role !== "admin" && inquiry.buyerId !== ctx.user.id)) throw new Error("Not permitted to message this inquiry");
-      await db.insert(inquiryMessages).values({ inquiryId: input.inquiryId, authorId: ctx.user.id, authorType: ctx.user.role === "admin" ? "seller" : "buyer", body: input.body });
+      const isStaff = ctx.user.role !== "user";
+      if (!inquiry || (!isStaff && inquiry.buyerId !== ctx.user.id)) throw new Error("Not permitted to message this inquiry");
+      await db.insert(inquiryMessages).values({ inquiryId: input.inquiryId, authorId: ctx.user.id, authorType: isStaff ? "seller" : "buyer", body: input.body });
       await db.update(inquiries).set({ status: "in_progress" }).where(eq(inquiries.id, input.inquiryId));
       return { success: true };
     }),
   }),
   orders: router({
-    create: adminProcedure.input(z.object({ vehicleId: z.number().int().positive(), buyerId: z.number().int().positive(), inquiryId: z.number().int().positive().optional(), agreedPriceKsh: z.number().int().min(0) })).mutation(async ({ ctx, input }) => {
+    paymentIntegrationStatus: adminProcedure.query(async ({ ctx }) => Object.entries(getPaymentProviderConfig()).map(([provider, status]) => ({ provider, ...status }))),
+    createPaymentIntent: salesProcedure.input(z.object({ orderId: z.number().int().positive(), provider: z.enum(paymentProviders), amountKsh: z.number().int().positive(), instructions: z.string().trim().max(4_000).optional() })).mutation(async ({ ctx, input }) => createPaymentIntent({ ...input, createdById: ctx.user.id })),
+    create: salesProcedure.input(z.object({ vehicleId: z.number().int().positive(), buyerId: z.number().int().positive(), inquiryId: z.number().int().positive().optional(), agreedPriceKsh: z.number().int().min(0) })).mutation(async ({ ctx, input }) => {
       const db = await requireDb();
       const result = await db.insert(orders).values({ ...input, status: "reserved" });
       const orderId = Number(result[0].insertId);
@@ -348,23 +352,23 @@ export const marketplaceRouter = router({
       await db.update(vehicles).set({ availability: "reserved" }).where(eq(vehicles.id, input.vehicleId));
       return { id: orderId };
     }),
-    adminList: adminProcedure.query(async () => {
+    adminList: salesProcedure.query(async () => {
       const db = await requireDb();
       const rows = await db.select({ order: orders, vehicle: vehicles, payment: payments }).from(orders).innerJoin(vehicles, eq(orders.vehicleId, vehicles.id)).leftJoin(payments, eq(payments.orderId, orders.id)).orderBy(desc(orders.updatedAt));
       return rows as Array<(typeof rows)[number] & { payment: NonNullable<(typeof rows)[number]["payment"]> }>;
     }),
-    updateStatus: adminProcedure.input(z.object({ orderId: z.number().int().positive(), status: z.enum(orderStatuses), cancellationReason: z.string().max(2000).optional() })).mutation(async ({ ctx, input }) => {
+    updateStatus: salesProcedure.input(z.object({ orderId: z.number().int().positive(), status: z.enum(orderStatuses), cancellationReason: z.string().max(2000).optional() })).mutation(async ({ ctx, input }) => {
       const db = await requireDb();
       await db.update(orders).set({ status: input.status, ...(input.status === "cancelled" ? { cancellationReason: input.cancellationReason ?? "Cancelled by seller", cancelledAt: new Date() } : {}) }).where(eq(orders.id, input.orderId));
       await db.insert(orderEvents).values({ orderId: input.orderId, actorId: ctx.user.id, status: input.status, title: input.status === "cancelled" ? "Order cancelled" : input.status === "refunded" ? "Refund recorded" : `Order moved to ${input.status}`, description: input.cancellationReason ?? null });
       return { success: true };
     }),
-    reconcilePayment: adminProcedure.input(z.object({ paymentId: z.number().int().positive(), status: z.enum(["reconciled", "failed", "refunded"]), notes: z.string().max(4000).optional() })).mutation(async ({ ctx, input }) => {
+    reconcilePayment: salesProcedure.input(z.object({ paymentId: z.number().int().positive(), status: z.enum(["reconciled", "failed", "refunded"]), notes: z.string().max(4000).optional() })).mutation(async ({ ctx, input }) => {
       const db = await requireDb();
       await db.update(payments).set({ status: input.status, notes: input.notes ?? null, reconciledAt: new Date(), reconciledById: ctx.user.id }).where(eq(payments.id, input.paymentId));
       return { success: true };
     }),
-    generateDocument: adminProcedure.input(z.object({ orderId: z.number().int().positive(), kind: z.enum(["invoice", "receipt"]) })).mutation(async ({ ctx, input }) => {
+    generateDocument: salesProcedure.input(z.object({ orderId: z.number().int().positive(), kind: z.enum(["invoice", "receipt"]) })).mutation(async ({ ctx, input }) => {
       const db = await requireDb();
       const row = (await db.select({ order: orders, vehicle: vehicles, buyer: users }).from(orders).innerJoin(vehicles, eq(orders.vehicleId, vehicles.id)).innerJoin(users, eq(orders.buyerId, users.id)).where(eq(orders.id, input.orderId)).limit(1))[0];
       if (!row) throw new Error("Order not found");
@@ -396,8 +400,19 @@ export const marketplaceRouter = router({
       return { success: true };
     }),
   }),
+  staff: router({
+    list: adminProcedure.query(async () => {
+      const db = await requireDb();
+      return db.select({ id: users.id, openId: users.openId, name: users.name, email: users.email, role: users.role, lastSignedIn: users.lastSignedIn, createdAt: users.createdAt }).from(users).orderBy(desc(users.lastSignedIn));
+    }),
+    updateRole: adminProcedure.input(z.object({ userId: z.number().int().positive(), role: z.enum(["user", "admin", "inventory_manager", "sales_manager", "support_agent"]) })).mutation(async ({ input }) => {
+      const db = await requireDb();
+      await db.update(users).set({ role: input.role }).where(eq(users.id, input.userId));
+      return { success: true };
+    }),
+  }),
   admin: router({
-    summary: adminProcedure.query(async () => {
+    summary: staffProcedure.query(async () => {
       const db = await requireDb();
       const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
       const [inventoryCounts, aging, openInquiries, pipeline, totals] = await Promise.all([
@@ -409,7 +424,7 @@ export const marketplaceRouter = router({
       ]);
       return { inventoryCounts, agingInventory: aging, openInquiryCount: Number(openInquiries[0]?.count ?? 0), pipeline, reconciledRevenueKsh: Number(totals[0]?.revenue ?? 0) };
     }),
-    reminders: adminProcedure.query(async () => {
+    reminders: supportProcedure.query(async () => {
       const db = await requireDb();
       return db.select().from(followUpReminders).where(and(eq(followUpReminders.status, "open"), gte(followUpReminders.dueAt, new Date(Date.now() - 24 * 60 * 60 * 1000)))).orderBy(followUpReminders.dueAt);
     }),

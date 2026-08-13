@@ -29,6 +29,27 @@
       "when": 1786650512098,
       "tag": "0003_remarkable_saracen",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1786652746112,
+      "tag": "0004_hot_risque",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1786656408930,
+      "tag": "0005_tranquil_cannonball",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1786656938722,
+      "tag": "0006_mixed_bulldozer",
+      "breakpoints": true
     }
   ]
 }

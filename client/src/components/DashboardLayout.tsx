@@ -28,11 +28,12 @@ import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { Button } from "./ui/button";
 
 const menuItems = [
-  { icon: LayoutDashboard, label: "Overview", path: "/admin" },
-  { icon: CarFront, label: "Inventory", path: "/admin/inventory" },
-  { icon: ClipboardList, label: "Orders", path: "/admin/orders" },
-  { icon: Users, label: "Customers", path: "/admin/customers" },
-  { icon: BarChart3, label: "Analytics", path: "/admin/analytics" },
+  { icon: LayoutDashboard, label: "Overview", path: "/admin", roles: ["admin", "inventory_manager", "sales_manager", "support_agent"] },
+  { icon: CarFront, label: "Inventory", path: "/admin/inventory", roles: ["admin", "inventory_manager"] },
+  { icon: ClipboardList, label: "Orders", path: "/admin/orders", roles: ["admin", "sales_manager"] },
+  { icon: Users, label: "Customers", path: "/admin/customers", roles: ["admin", "sales_manager", "support_agent"] },
+  { icon: BarChart3, label: "Analytics", path: "/admin/analytics", roles: ["admin", "sales_manager"] },
+  { icon: Users, label: "Staff", path: "/admin/staff", roles: ["admin"] },
 ];
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
@@ -113,7 +114,8 @@ function DashboardLayoutContent({
   const isCollapsed = state === "collapsed";
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
-  const activeMenuItem = menuItems.find(item => item.path === location);
+  const allowedMenuItems = menuItems.filter(item => item.roles.includes(user?.role ?? "user"));
+  const activeMenuItem = allowedMenuItems.find(item => item.path === location);
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -181,7 +183,7 @@ function DashboardLayoutContent({
 
           <SidebarContent className="gap-0">
             <SidebarMenu className="px-2 py-1">
-              {menuItems.map(item => {
+              {allowedMenuItems.map(item => {
                 const isActive = location === item.path;
                 return (
                   <SidebarMenuItem key={item.path}>

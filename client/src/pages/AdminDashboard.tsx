@@ -3,7 +3,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { trpc } from "@/lib/trpc";
 import { startLogin } from "@/const";
 import { AlertTriangle, ArrowUpRight, BarChart3, CarFront, CheckCircle2, ClipboardList, FileUp, ImagePlus, Loader2, Plus, RefreshCw, Upload, Users } from "lucide-react";
-import { useMemo, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import { useLocation } from "wouter";
 
 const blankVehicle = {
@@ -71,13 +71,24 @@ export default function AdminDashboard() {
   const [vehicleForm, setVehicleForm] = useState(blankVehicle);
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
   const [bulkFile, setBulkFile] = useState<File | null>(null);
-  const isAdmin = user?.role === "admin";
+  const isAdmin = Boolean(user && user.role !== "user");
+  const isOwner = user?.role === "admin";
   const section = location.split("/")[2] || "overview";
+  const allowedSections = user?.role === "admin"
+    ? ["overview", "inventory", "orders", "customers", "analytics", "staff"]
+    : user?.role === "inventory_manager"
+      ? ["overview", "inventory"]
+      : user?.role === "sales_manager"
+        ? ["overview", "orders", "customers", "analytics"]
+        : user?.role === "support_agent"
+          ? ["overview", "customers"]
+          : [];
   const utils = trpc.useUtils();
   const summary = trpc.marketplace.admin.summary.useQuery(undefined, { enabled: isAdmin });
   const vehicleList = trpc.marketplace.vehicles.adminList.useQuery(undefined, { enabled: isAdmin });
   const orderList = trpc.marketplace.orders.adminList.useQuery(undefined, { enabled: isAdmin });
   const inquiryList = trpc.marketplace.inquiries.adminList.useQuery(undefined, { enabled: isAdmin });
+  const staffList = trpc.marketplace.staff.list.useQuery(undefined, { enabled: isOwner });
   const createVehicle = trpc.marketplace.vehicles.create.useMutation({ onSuccess: () => utils.marketplace.vehicles.adminList.invalidate() });
   const updateStatus = trpc.marketplace.vehicles.updateStatus.useMutation({ onSuccess: () => { utils.marketplace.vehicles.adminList.invalidate(); utils.marketplace.admin.summary.invalidate(); } });
   const cloneVehicle = trpc.marketplace.vehicles.clone.useMutation({ onSuccess: () => utils.marketplace.vehicles.adminList.invalidate() });
@@ -86,6 +97,7 @@ export default function AdminDashboard() {
   const updateOrderStatus = trpc.marketplace.orders.updateStatus.useMutation({ onSuccess: () => utils.marketplace.orders.adminList.invalidate() });
   const reconcilePayment = trpc.marketplace.orders.reconcilePayment.useMutation({ onSuccess: () => utils.marketplace.orders.adminList.invalidate() });
   const generateOrderDocument = trpc.marketplace.orders.generateDocument.useMutation({ onSuccess: () => tell("Document generated and stored in the buyer document center.") });
+  const updateStaffRole = trpc.marketplace.staff.updateRole.useMutation({ onSuccess: () => utils.marketplace.staff.list.invalidate() });
   const [notice, setNotice] = useState<string | null>(null);
 
   const publishedCount = useMemo(() => Number(summary.data?.inventoryCounts.find((item) => item.status === "published")?.count ?? 0), [summary.data]);
@@ -144,11 +156,17 @@ export default function AdminDashboard() {
 
   const nextOrderStatus = (status: string) => ({ inquiry: "reserved", reserved: "paid", paid: "shipping", shipping: "delivered", delivered: "closed", closed: "closed", cancelled: "cancelled", refunded: "refunded" }[status] as "inquiry" | "reserved" | "paid" | "shipping" | "delivered" | "closed" | "cancelled" | "refunded");
 
+  useEffect(() => {
+    if (isAdmin && !allowedSections.includes(section)) setLocation("/admin");
+  }, [allowedSections, isAdmin, section, setLocation]);
+
   if (loading) return <div className="grid min-h-screen place-items-center bg-[#f6f4ee]"><Loader2 className="animate-spin text-[#0f1f4b]" /></div>;
   if (!user) return <div className="grid min-h-screen place-items-center bg-[#f6f4ee] p-6"><div className="max-w-md rounded-3xl bg-white p-8 text-center shadow-xl"><CarFront className="mx-auto text-[#a47b06]" /><h1 className="mt-4 text-3xl font-bold text-[#0f1f4b]">Operations are secured.</h1><p className="mt-3 text-sm leading-6 text-[#777269]">Sign in to access your Mugo marketplace workspace.</p><button className="mt-6 rounded-xl bg-[#0f1f4b] px-5 py-3 text-sm font-bold text-white" onClick={() => startLogin()}>Sign in to continue</button></div></div>;
 
   return <DashboardLayout><div className="min-h-full bg-[#f6f4ee] p-2 sm:p-5"><div className="mx-auto max-w-7xl">{!isAdmin ? <div className="rounded-3xl border border-[#efc94c] bg-white p-10"><p className="text-xs font-bold uppercase tracking-[.14em] text-[#a47b06]">Access restricted</p><h1 className="mt-3 text-4xl font-bold tracking-[-.06em] text-[#0f1f4b]">Seller operations are reserved for administrators.</h1><p className="mt-4 max-w-2xl text-sm leading-7 text-[#777269]">Your buyer account can still use saved vehicles, orders, messages, and documents once the buyer dashboard is connected.</p><a href="/" className="mt-7 inline-flex items-center gap-2 rounded-xl bg-[#0f1f4b] px-5 py-3 text-sm font-bold text-white">Return to showroom <ArrowUpRight size={16} /></a></div> : <>
     <header className="mb-7 flex flex-col justify-between gap-5 sm:flex-row sm:items-end"><div><p className="text-[10px] font-bold uppercase tracking-[.14em] text-[#a47b06]">Mugo seller workspace</p><h1 className="mt-2 text-4xl font-bold tracking-[-.07em] text-[#0f1f4b]">{section === "overview" ? "A clear view of the route." : section[0].toUpperCase() + section.slice(1)}</h1><p className="mt-2 text-sm text-[#777269]">Inventory, customer movement, and money rails in one considered workspace.</p></div><div className="flex items-center gap-3"><a href="/" className="rounded-xl border border-[#dad5ca] bg-white px-4 py-2.5 text-xs font-bold text-[#0f1f4b]">View showroom</a>{section === "inventory" && <button className="inline-flex items-center gap-2 rounded-xl bg-[#efc94c] px-4 py-2.5 text-xs font-bold text-[#0f1f4b]" onClick={() => setFormOpen(true)}><Plus size={16} /> Add vehicle</button>}</div></header>
+
+    {section === "staff" && <section className="overflow-hidden rounded-3xl border border-[#e9e3d6] bg-white"><div className="border-b border-[#eee9df] p-5"><p className="text-[10px] font-bold uppercase tracking-[.14em] text-[#a47b06]">Team access</p><h2 className="mt-1 text-xl font-bold tracking-[-.05em] text-[#0f1f4b]">Assign the right route to each staff member.</h2><p className="mt-2 text-sm text-[#777269]">Inventory managers control listings and media. Sales managers manage orders and documents. Support agents work buyer inquiries. Administrators retain full access.</p></div>{!isOwner ? <div className="p-10 text-center text-sm text-[#777269]">Only an administrator can assign staff roles.</div> : <div className="divide-y divide-[#eee9df]">{staffList.data?.map((member) => <div className="grid gap-3 p-5 md:grid-cols-[1fr_200px_auto] md:items-center" key={member.id}><div><strong className="text-sm text-[#0f1f4b]">{member.name || "Unnamed account"}</strong><span className="mt-1 block text-xs text-[#777269]">{member.email || member.openId || `User #${member.id}`} · Last seen {formatDate(member.lastSignedIn)}</span></div><select aria-label={`Role for ${member.name || member.id}`} className="rounded-xl border border-[#d8d0c2] bg-white px-3 py-2.5 text-sm font-bold text-[#0f1f4b]" value={member.role} disabled={member.id === user.id || updateStaffRole.isPending} onChange={(event) => updateStaffRole.mutate({ userId: member.id, role: event.currentTarget.value as "user" | "admin" | "inventory_manager" | "sales_manager" | "support_agent" })}><option value="user">Buyer</option><option value="inventory_manager">Inventory manager</option><option value="sales_manager">Sales manager</option><option value="support_agent">Support agent</option><option value="admin">Administrator</option></select><span className="text-xs text-[#777269]">{member.id === user.id ? "Your administrator role" : "Role updates apply on the next request."}</span></div>)}{!staffList.data?.length && <div className="p-10 text-center text-sm text-[#777269]">Team members appear here after they sign in for the first time.</div>}</div>}</section>}
 
     {section === "overview" && <><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><Metric label="Published inventory" value={publishedCount} note={`${draftCount} staged as draft`} icon={CarFront} /><Metric label="Open conversations" value={summary.data?.openInquiryCount ?? "—"} note="New and in-progress inquiries" icon={Users} /><Metric label="Aging inventory" value={summary.data?.agingInventory.length ?? "—"} note="Published more than 60 days" icon={AlertTriangle} /><Metric label="Reconciled revenue" value={formatKsh(summary.data?.reconciledRevenueKsh ?? 0)} note="Across connected payment records" icon={BarChart3} /></div><div className="mt-6 grid gap-6 xl:grid-cols-[1.25fr_.75fr]"><section className="rounded-3xl bg-[#0f1f4b] p-6 text-white"><div className="flex items-center justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[.14em] text-[#efc94c]">Next operations</p><h2 className="mt-2 text-2xl font-bold tracking-[-.06em]">Move each car with intention.</h2></div><ClipboardList className="text-[#efc94c]" /></div><div className="mt-6 grid gap-3 sm:grid-cols-3"><button onClick={() => setLocation("/admin/inventory")} className="rounded-2xl bg-white/10 p-4 text-left transition hover:bg-white/15"><span className="text-xs text-white/60">01</span><strong className="mt-2 block text-sm">Stage listings</strong><span className="mt-1 block text-xs text-white/60">Draft, clone, upload, publish.</span></button><button onClick={() => setLocation("/admin/orders")} className="rounded-2xl bg-white/10 p-4 text-left transition hover:bg-white/15"><span className="text-xs text-white/60">02</span><strong className="mt-2 block text-sm">Work the pipeline</strong><span className="mt-1 block text-xs text-white/60">Inquiry to delivery and close.</span></button><button onClick={() => setLocation("/admin/customers")} className="rounded-2xl bg-white/10 p-4 text-left transition hover:bg-white/15"><span className="text-xs text-white/60">03</span><strong className="mt-2 block text-sm">Keep every follow-up visible</strong><span className="mt-1 block text-xs text-white/60">Turn inquiry history into care.</span></button></div></section><section className="rounded-3xl border border-[#e9e3d6] bg-white p-6"><div className="flex items-center justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[.14em] text-[#a47b06]">Aging inventory watch</p><h2 className="mt-2 text-xl font-bold tracking-[-.05em] text-[#0f1f4b]">Review before it lingers.</h2></div><AlertTriangle className="text-[#a47b06]" /></div><div className="mt-5 space-y-3">{summary.data?.agingInventory.length ? summary.data.agingInventory.slice(0, 3).map((vehicle) => <div className="flex items-center justify-between border-t border-[#eee9df] pt-3" key={vehicle.id}><div><strong className="text-sm text-[#0f1f4b]">{vehicle.make} {vehicle.model}</strong><span className="mt-1 block text-xs text-[#777269]">Listed {formatDate(vehicle.listedAt)}</span></div><button className="text-xs font-bold text-[#a47b06]" onClick={() => setLocation("/admin/inventory")}>Review</button></div>) : <p className="py-8 text-sm text-[#777269]">No published vehicles have crossed the 60-day watch threshold.</p>}</div></section></div></>}
 

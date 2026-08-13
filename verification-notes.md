@@ -1,5 +1,21 @@
 # Verification Notes
 
+## GitHub synchronization note — 2026-08-13
+
+The authenticated browser session has owner-level access to the public `maitethialeakey-droid/mugo-automobiles` repository. The repository contains `.github/workflows/extract-source.yml`, including a manually runnable source-archive extraction workflow. The current working tree will be packaged without secrets, dependencies, build outputs, or local runtime logs before it is uploaded through this authorized session.
+
+The packaged `mugo-automobiles-source-20260813.zip` archive has been staged in the authorized repository upload form. It contains the validated current source tree and excludes Git history, installed dependencies, build output, environment files, coverage, and local logs.
+
+The update commit was submitted directly to the public `main` branch with an explicit description that live payment capture remains disabled. GitHub is processing the uploaded archive before the repository workflow can expand the current source tree.
+
+GitHub completed the archive commit as `bbecf3a` (`Publish validated Mugo Automobiles platform updates`). The repository’s existing `Expand source archive` workflow is available for a manual run; a prior completed workflow run is visible, so the next run will expand the newly uploaded archive.
+
+The owner-authorized `Expand source archive` workflow was manually triggered on `main` for commit `bbecf3a`. GitHub assigned workflow run `#2` and initially reported it as queued.
+
+Workflow run `#2` completed successfully in 10 seconds. The public repository now shows five commits and includes the newly uploaded `mugo-automobiles-source-20260813.zip` archive on `main`; the source-expansion workflow completed without errors, apart from GitHub’s non-blocking Node.js 20 deprecation warning for `actions/checkout@v4`.
+
+Repository verification confirms that the new archive commit is public. The visible expanded source-tree entries still point to the earlier extraction commit, so the archive is the current delivered source package and the source-expansion workflow will need to be configured to consume the new archive filename before a follow-up source-tree commit is expected.
+
 ## Desktop pass
 
 The homepage reads as a premium navy-and-ivory showroom with a clear hero, a functional search dock, a stronger asymmetrical arrival list, a calm three-step route section, and a route-map delivery panel. The refreshed contact band keeps Mugo Gold as a precise action cue rather than a full-bleed background.
@@ -29,3 +45,5 @@ At a 375-pixel viewport, the seller inventory workspace keeps its primary action
 The expanded 375-pixel pass covers the seller overview, inventory, and orders routes plus the buyer dashboard. The responsive seller shell collapses to a compact top bar while preserving the current route label; the visible Add vehicle action, import control, and order-pipeline status sequence remain legible. Buyer navigation stacks in a dedicated panel with comfortably sized tabs, and all checked routes remain free of viewport overflow in their empty states.
 
 The separate sandbox browser has no owner session, so its authenticated seller controls intentionally stop at the sign-in screen. The compact authenticated layout and control availability were verified through the project preview; an owner-session acceptance pass remains necessary to exercise live upload, modal submission, sidebar toggling, buyer tab changes, and order actions against authenticated data.
+
+The owner-facing Staff route renders cleanly with an explicit role guide, current team members, and role controls for inventory manager, sales manager, support agent, buyer, and administrator. Automated tests confirm that inventory, sales, and support roles have distinct server-side boundaries, while the owner retains role assignment and alert-scan authority.

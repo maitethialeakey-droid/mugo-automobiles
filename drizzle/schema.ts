@@ -16,7 +16,7 @@ export const users = mysqlTable("users", {
   name: text("name"),
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
-  role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
+  role: mysqlEnum("role", ["user", "admin", "inventory_manager", "sales_manager", "support_agent"]).default("user").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
@@ -29,9 +29,13 @@ export const inquiryStatus = mysqlEnum("inquiry_status", ["open", "in_progress",
 export const messageAuthor = mysqlEnum("message_author", ["buyer", "seller", "system"]);
 export const orderStatus = mysqlEnum("order_status", ["inquiry", "reserved", "paid", "shipping", "delivered", "closed", "cancelled", "refunded"]);
 export const paymentStatus = mysqlEnum("payment_status", ["pending", "reconciled", "failed", "refunded"]);
+export const paymentProvider = mysqlEnum("payment_provider", ["bank_transfer", "mpesa", "airtel_money", "paypal", "payoneer", "crypto"]);
+export const paymentIntentStatus = mysqlEnum("payment_intent_status", ["draft", "pending", "requires_action", "authorized", "paid", "failed", "expired", "cancelled", "refunded"]);
 export const documentType = mysqlEnum("document_type", ["invoice", "receipt", "bill_of_lading", "logbook", "registration", "condition_report", "auction_sheet", "other"]);
 export const reminderStatus = mysqlEnum("reminder_status", ["open", "done", "dismissed"]);
 export const notificationKind = mysqlEnum("notification_kind", ["aging_inventory", "price_drop", "saved_search", "follow_up"]);
+export const notificationDeliveryChannel = mysqlEnum("notification_delivery_channel", ["email", "sms"]);
+export const notificationDeliveryStatus = mysqlEnum("notification_delivery_status", ["pending", "sent", "failed", "skipped"]);
 
 export const vehicles = mysqlTable("vehicles", {
   id: int("id").autoincrement().primaryKey(),
@@ -172,6 +176,21 @@ export const notifications = mysqlTable("notifications", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, (table) => [uniqueIndex("notifications_user_reference_unique").on(table.userId, table.referenceKey), index("notifications_user_created_idx").on(table.userId, table.createdAt)]);
 
+export const notificationDeliveries = mysqlTable("notification_deliveries", {
+  id: int("id").autoincrement().primaryKey(),
+  notificationId: int("notificationId").notNull().references(() => notifications.id, { onDelete: "cascade" }),
+  channel: notificationDeliveryChannel.notNull(),
+  recipient: varchar("recipient", { length: 320 }).notNull(),
+  provider: varchar("provider", { length: 80 }).notNull(),
+  status: notificationDeliveryStatus.default("pending").notNull(),
+  providerMessageId: varchar("providerMessageId", { length: 240 }),
+  errorMessage: text("errorMessage"),
+  attemptedAt: timestamp("attemptedAt"),
+  sentAt: timestamp("sentAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => [uniqueIndex("notification_deliveries_unique").on(table.notificationId, table.channel, table.recipient), index("notification_deliveries_status_idx").on(table.status, table.updatedAt)]);
+
 export const marketplaceSettings = mysqlTable("marketplace_settings", {
   key: varchar("key", { length: 80 }).primaryKey(),
   alertScheduleTaskUid: varchar("alertScheduleTaskUid", { length: 65 }),
@@ -208,6 +227,35 @@ export const payments = mysqlTable("payments", {
   notes: text("notes"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, (table) => [index("payments_status_provider_idx").on(table.status, table.provider)]);
+
+export const paymentIntents = mysqlTable("payment_intents", {
+  id: int("id").autoincrement().primaryKey(),
+  orderId: int("orderId").notNull().references(() => orders.id, { onDelete: "cascade" }),
+  provider: paymentProvider.notNull(),
+  status: paymentIntentStatus.default("draft").notNull(),
+  amountKsh: int("amountKsh").notNull(),
+  currency: varchar("currency", { length: 8 }).default("KES").notNull(),
+  reference: varchar("reference", { length: 200 }).notNull().unique(),
+  checkoutUrl: varchar("checkoutUrl", { length: 1024 }),
+  instructions: text("instructions"),
+  expiresAt: timestamp("expiresAt"),
+  createdById: int("createdById").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => [index("payment_intents_order_status_idx").on(table.orderId, table.status), index("payment_intents_provider_status_idx").on(table.provider, table.status)]);
+
+// Receipts are retained for audit and idempotency. Only signature-verified receipts may ever be promoted into a payment state transition.
+export const paymentWebhookReceipts = mysqlTable("payment_webhook_events", {
+  id: int("id").autoincrement().primaryKey(),
+  provider: paymentProvider.notNull(),
+  paymentId: int("paymentId").references(() => payments.id, { onDelete: "set null" }),
+  providerEventId: varchar("providerEventId", { length: 240 }).notNull(),
+  eventType: varchar("eventType", { length: 160 }),
+  payloadHash: varchar("payloadHash", { length: 128 }).notNull(),
+  signatureVerified: boolean("signatureVerified").default(false).notNull(),
+  processedAt: timestamp("processedAt"),
+  receivedAt: timestamp("receivedAt").defaultNow().notNull(),
+}, (table) => [uniqueIndex("payment_webhook_provider_event_unique").on(table.provider, table.providerEventId), index("payment_webhook_processed_idx").on(table.provider, table.signatureVerified, table.receivedAt)]);
 
 export const orderEvents = mysqlTable("order_events", {
   id: int("id").autoincrement().primaryKey(),

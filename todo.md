@@ -12,7 +12,16 @@
 - [x] Confirm the preferred payment gateway order and whether live merchant credentials are available.
 - [x] Proceed with no live payment rail initially; keep payment providers extensible for the next integration step.
 - [x] Use the existing Manus sign-in flow for buyer authentication.
-- [ ] Confirm whether admin access should remain owner-only or support multiple staff roles.
+- [x] Confirm that the initial release should support multiple staff roles.
+- [x] Superseded by the more specific role-model checklist below: define operations, inventory, sales, and support roles.
+- [x] Superseded by the more specific role-model checklist below: enforce staff permissions in procedures and navigation.
+- [x] Superseded by the more specific role-model checklist below: test role-specific access boundaries.
+- [x] Define administrator, inventory manager, sales manager, support agent, and buyer roles with explicit marketplace responsibilities.
+- [x] Enforce staff role permissions in marketplace procedures and dashboard navigation.
+- [x] Test and verify role-specific access boundaries.
+- [x] Make seller navigation role-aware for inventory, sales, support, and administrator staff.
+- [ ] Perform authenticated acceptance checks for role-specific routes and protected actions.
+- [ ] Make seller overview action cards and section-specific call-to-action controls role-aware.
 - [x] Upgrade the static project with backend, authentication, database, and file storage.
 - [x] Add inventory lifecycle, spreadsheet import, duplication, ordered media, browser-side image compression, and aging-inventory visibility.
 - [x] Add seller/admin dashboard with pipeline, reconciliation controls, refunds, customer CRM foundation, and analytics readiness.
@@ -31,6 +40,18 @@
 - [x] Create and persist the daily 09:00 EAT production heartbeat for the in-app price-drop, saved-search, aging-inventory, and follow-up scan.
 - [ ] Validate email and SMS alert delivery after the SendGrid and Africa’s Talking credentials are configured.
 - [x] Implement durable in-app alert records, a deduplicated alert scanner, an authenticated alert inbox endpoint, and a cron-safe callback handler.
-- [ ] Create the public Leakeylabs/mugo-automobiles GitHub repository and export the current project source.
-- [ ] Identify the intended repository under maitethialeakey-droid and export the current project source after authorization.
-- [ ] Create and export the project to the confirmed public maitethialeakey-droid/mugo-automobiles repository.
+- [x] Close the obsolete Leakeylabs/mugo-automobiles target after the owner selected maitethialeakey-droid instead.
+- [x] Identify the intended repository under maitethialeakey-droid and export the current project source after authorization.
+- [x] Create and export the project to the confirmed public maitethialeakey-droid/mugo-automobiles repository as a browsable source tree.
+- [x] Restart and verify the development server after the reported preview outage.
+- [x] Implement credential-safe SendGrid and Africa’s Talking delivery adapters for scheduled marketplace alerts.
+- [x] Wire the scheduled alert scan to route eligible notification records through configured email and SMS providers.
+- [x] Add provider-configuration validation and delivery-adapter tests without exposing secrets.
+- [ ] Configure the approved owner SMS recipient as protected server configuration for Africa’s Talking delivery.
+- [ ] Add routing tests that cover alert delivery records for email and SMS channels.
+- [ ] Synchronize the latest validated marketplace changes to maitethialeakey-droid/mugo-automobiles.
+- [x] Add provider-neutral payment-intent and reconciliation contracts for bank transfer, M-Pesa, Airtel Money, PayPal, Payoneer, and crypto.
+- [ ] Implement provider-specific webhook signature verification before any payment event can be processed.
+- [x] Add the PayPal verification-API adapter; verified PayPal receipts remain non-processing until live activation is separately approved.
+- [x] Keep payment capture disabled until merchant credentials, compliance review, and explicit activation approval are supplied.
+- [ ] Add webhook tests for unknown providers, inactive receipts, duplicate events, and verified-versus-unverified processing.

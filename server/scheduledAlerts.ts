@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import { getDb } from "./db";
 import { scanMarketplaceAlerts } from "./routers/marketplace";
 import { sdk } from "./_core/sdk";
+import { deliverPendingMarketplaceAlerts } from "./alertDelivery";
 
 export async function handleMarketplaceAlertScan(req: Request, res: Response) {
   try {
@@ -10,7 +11,8 @@ export async function handleMarketplaceAlertScan(req: Request, res: Response) {
     const db = await getDb();
     if (!db) return res.status(503).json({ error: "database-unavailable" });
     const summary = await scanMarketplaceAlerts(db);
-    return res.json({ ok: true, taskUid: user.taskUid, summary, timestamp: new Date().toISOString() });
+    const delivery = await deliverPendingMarketplaceAlerts(db);
+    return res.json({ ok: true, taskUid: user.taskUid, summary, delivery, timestamp: new Date().toISOString() });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown scheduled alert error";
     return res.status(500).json({ error: message, context: { path: "/api/scheduled/marketplace-alerts" }, timestamp: new Date().toISOString() });

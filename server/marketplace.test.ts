@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
 
-function contextFor(role: "admin" | "user"): TrpcContext {
+function contextFor(role: "admin" | "user" | "inventory_manager" | "sales_manager" | "support_agent"): TrpcContext {
   return {
     user: {
       id: 42,
@@ -35,5 +35,23 @@ describe("marketplace router guards", () => {
   it("validates listing draft fields before seller actions reach storage or the database", async () => {
     const caller = appRouter.createCaller(contextFor("admin"));
     await expect(caller.marketplace.vehicles.create({ stockNumber: "A", make: "", model: "", year: 2020, priceKsh: 0, status: "draft" })).rejects.toMatchObject<Partial<TRPCError>>({ code: "BAD_REQUEST" });
+  });
+
+  it("allows inventory staff to reach inventory validation but blocks sales-only actions", async () => {
+    const caller = appRouter.createCaller(contextFor("inventory_manager"));
+    await expect(caller.marketplace.vehicles.create({ stockNumber: "A", make: "", model: "", year: 2020, priceKsh: 0, status: "draft" })).rejects.toMatchObject<Partial<TRPCError>>({ code: "BAD_REQUEST" });
+    await expect(caller.marketplace.orders.adminList()).rejects.toMatchObject<Partial<TRPCError>>({ code: "FORBIDDEN" });
+  });
+
+  it("allows sales staff to reach order validation but blocks inventory-only actions", async () => {
+    const caller = appRouter.createCaller(contextFor("sales_manager"));
+    await expect(caller.marketplace.vehicles.create({ stockNumber: "A", make: "", model: "", year: 2020, priceKsh: 0, status: "draft" })).rejects.toMatchObject<Partial<TRPCError>>({ code: "FORBIDDEN" });
+    await expect(caller.marketplace.orders.create({ vehicleId: 0, buyerId: 0, agreedPriceKsh: -1 })).rejects.toMatchObject<Partial<TRPCError>>({ code: "BAD_REQUEST" });
+  });
+
+  it("allows support staff to view inquiries but blocks payment operations", async () => {
+    const caller = appRouter.createCaller(contextFor("support_agent"));
+    await expect(caller.marketplace.inquiries.adminList()).resolves.toEqual([]);
+    await expect(caller.marketplace.orders.reconcilePayment({ paymentId: 1, status: "reconciled" })).rejects.toMatchObject<Partial<TRPCError>>({ code: "FORBIDDEN" });
   });
 });
