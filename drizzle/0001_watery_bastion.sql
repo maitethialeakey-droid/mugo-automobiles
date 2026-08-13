@@ -1,0 +1,2 @@
+ALTER TABLE `vehicle_documents` ADD `orderId` int;--> statement-breakpoint
+ALTER TABLE `vehicle_documents` ADD CONSTRAINT `vehicle_documents_orderId_orders_id_fk` FOREIGN KEY (`orderId`) REFERENCES `orders`(`id`) ON DELETE cascade ON UPDATE no action;

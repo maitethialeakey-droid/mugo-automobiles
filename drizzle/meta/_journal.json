@@ -1,0 +1,34 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1786641664246,
+      "tag": "0000_groovy_unicorn",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1786642252830,
+      "tag": "0001_watery_bastion",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1786650282105,
+      "tag": "0002_magical_captain_universe",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1786650512098,
+      "tag": "0003_remarkable_saracen",
+      "breakpoints": true
+    }
+  ]
+}
