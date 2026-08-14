@@ -21,7 +21,11 @@
 - [x] Test and verify role-specific access boundaries.
 - [x] Make seller navigation role-aware for inventory, sales, support, and administrator staff.
 - [ ] Perform authenticated acceptance checks for role-specific routes and protected actions.
-- [ ] Make seller overview action cards and section-specific call-to-action controls role-aware.
+- [x] Implement explicit role-based overview action rendering instead of global CSS-only hiding.
+- [x] Gate seller dashboard CTA controls by the permitted staff roles for each section.
+- [x] Add validation coverage for role-aware dashboard CTAs and protected direct-link flows.
+- [x] Assert actual navigation when staff visit forbidden `/admin/:section` routes.
+- [x] Expand rendered CTA coverage to administrator, inventory, sales, and support roles, including section-specific controls.
 - [x] Upgrade the static project with backend, authentication, database, and file storage.
 - [x] Add inventory lifecycle, spreadsheet import, duplication, ordered media, browser-side image compression, and aging-inventory visibility.
 - [x] Add seller/admin dashboard with pipeline, reconciliation controls, refunds, customer CRM foundation, and analytics readiness.
@@ -61,5 +65,6 @@
 - [ ] Obtain explicit final approval before enabling live payment capture for each rail.
 - [x] Reject placeholder payment configuration values so only genuine merchant credentials can mark a provider as configured.
 - [x] Restart and verify the development server after the latest reported preview outage.
-- [ ] Publish the current validated full-stack release and verify its public deployment.
-- [ ] Synchronize the latest validated source checkpoint to maitethialeakey-droid/mugo-automobiles.
+- [x] Verify the live managed deployment at https://mugovehics-jqywy3u3.manus.space after the latest release.
+- [x] Synchronize the latest validated source checkpoint to maitethialeakey-droid/mugo-automobiles.
+- [ ] Synchronize the latest published staff-access enhancement to maitethialeakey-droid/mugo-automobiles.

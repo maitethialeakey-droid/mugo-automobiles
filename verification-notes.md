@@ -22,6 +22,10 @@ The replacement archive commit was submitted directly to `main` with the workflo
 
 The follow-up archive commit landed as `289d591` and automatically triggered `Expand source archive` workflow run `#3`. GitHub reports the run as completed successfully in 11 seconds, confirming that the exact-name archive trigger executed.
 
+The latest validated release source has been repackaged without credentials, build output, or local logs and submitted to the same workflow-consumed `mugo-automobiles-source.zip` path. The commit message is `Publish current Mugo Automobiles release source`; GitHub is processing the upload before the automatic expansion workflow can complete.
+
+GitHub accepted the current release archive as commit `685c51d` and automatically ran `Expand source archive` workflow run `#4`. The workflow completed successfully in 8 seconds, confirming that the published repository source tree reflects the current release archive.
+
 ## Desktop pass
 
 The homepage reads as a premium navy-and-ivory showroom with a clear hero, a functional search dock, a stronger asymmetrical arrival list, a calm three-step route section, and a route-map delivery panel. The refreshed contact band keeps Mugo Gold as a precise action cue rather than a full-bleed background.
