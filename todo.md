@@ -49,9 +49,17 @@
 - [x] Add provider-configuration validation and delivery-adapter tests without exposing secrets.
 - [ ] Configure the approved owner SMS recipient as protected server configuration for Africa’s Talking delivery.
 - [ ] Add routing tests that cover alert delivery records for email and SMS channels.
-- [ ] Synchronize the latest validated marketplace changes to maitethialeakey-droid/mugo-automobiles.
+- [x] Synchronize the latest validated marketplace changes to maitethialeakey-droid/mugo-automobiles.
 - [x] Add provider-neutral payment-intent and reconciliation contracts for bank transfer, M-Pesa, Airtel Money, PayPal, Payoneer, and crypto.
 - [ ] Implement provider-specific webhook signature verification before any payment event can be processed.
 - [x] Add the PayPal verification-API adapter; verified PayPal receipts remain non-processing until live activation is separately approved.
 - [x] Keep payment capture disabled until merchant credentials, compliance review, and explicit activation approval are supplied.
-- [ ] Add webhook tests for unknown providers, inactive receipts, duplicate events, and verified-versus-unverified processing.
+- [x] Add webhook tests for unknown providers, inactive receipts, duplicate events, and verified-versus-unverified processing.
+- [ ] Collect merchant-approved secure configuration for bank transfer, M-Pesa, Airtel Money, PayPal, Payoneer, and a named crypto processor.
+- [ ] Implement provider-specific webhook verification for each merchant-approved rail before payment state changes can be enabled.
+- [ ] Run sandbox-only payment and reconciliation acceptance checks for every configured provider.
+- [ ] Obtain explicit final approval before enabling live payment capture for each rail.
+- [x] Reject placeholder payment configuration values so only genuine merchant credentials can mark a provider as configured.
+- [x] Restart and verify the development server after the latest reported preview outage.
+- [ ] Publish the current validated full-stack release and verify its public deployment.
+- [ ] Synchronize the latest validated source checkpoint to maitethialeakey-droid/mugo-automobiles.

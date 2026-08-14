@@ -16,6 +16,12 @@ Workflow run `#2` completed successfully in 10 seconds. The public repository no
 
 Repository verification confirms that the new archive commit is public. The visible expanded source-tree entries still point to the earlier extraction commit, so the archive is the current delivered source package and the source-expansion workflow will need to be configured to consume the new archive filename before a follow-up source-tree commit is expected.
 
+The workflow definition consumes `mugo-automobiles-source.zip`. A freshly packaged, secret-free archive with that exact name has now been staged in the owner-authorized repository upload form for the follow-up commit that will trigger source-tree expansion.
+
+The replacement archive commit was submitted directly to `main` with the workflow-consumed filename. GitHub is processing the upload; once the commit lands, the `push.paths` trigger for `mugo-automobiles-source.zip` should start a new source-expansion run automatically.
+
+The follow-up archive commit landed as `289d591` and automatically triggered `Expand source archive` workflow run `#3`. GitHub reports the run as completed successfully in 11 seconds, confirming that the exact-name archive trigger executed.
+
 ## Desktop pass
 
 The homepage reads as a premium navy-and-ivory showroom with a clear hero, a functional search dock, a stronger asymmetrical arrival list, a calm three-step route section, and a route-map delivery panel. The refreshed contact band keeps Mugo Gold as a precise action cue rather than a full-bleed background.
