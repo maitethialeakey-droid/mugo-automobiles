@@ -52,7 +52,7 @@
 - [x] Wire the scheduled alert scan to route eligible notification records through configured email and SMS providers.
 - [x] Add provider-configuration validation and delivery-adapter tests without exposing secrets.
 - [ ] Configure the approved owner SMS recipient as protected server configuration for Africa’s Talking delivery.
-- [ ] Add routing tests that cover alert delivery records for email and SMS channels.
+- [x] Add routing tests that cover alert delivery records for email and SMS channels.
 - [x] Synchronize the latest validated marketplace changes to maitethialeakey-droid/mugo-automobiles.
 - [x] Add provider-neutral payment-intent and reconciliation contracts for bank transfer, M-Pesa, Airtel Money, PayPal, Payoneer, and crypto.
 - [ ] Implement provider-specific webhook signature verification before any payment event can be processed.
@@ -67,4 +67,5 @@
 - [x] Restart and verify the development server after the latest reported preview outage.
 - [x] Verify the live managed deployment at https://mugovehics-jqywy3u3.manus.space after the latest release.
 - [x] Synchronize the latest validated source checkpoint to maitethialeakey-droid/mugo-automobiles.
-- [ ] Synchronize the latest published staff-access enhancement to maitethialeakey-droid/mugo-automobiles.
+- [x] Verify the public expanded source tree contains the latest staff-access enhancement files.
+- [ ] Publish the latest validated alert-delivery release and synchronize its source to GitHub.

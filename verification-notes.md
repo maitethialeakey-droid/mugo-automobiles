@@ -26,6 +26,12 @@ The latest validated release source has been repackaged without credentials, bui
 
 GitHub accepted the current release archive as commit `685c51d` and automatically ran `Expand source archive` workflow run `#4`. The workflow completed successfully in 8 seconds, confirming that the published repository source tree reflects the current release archive.
 
+The staff-access enhancement source archive has been submitted directly to the same workflow-consumed path with commit summary `Sync explicit staff dashboard access controls`. It contains explicit role-gated seller actions and rendered authorization tests, while excluding credentials, local logs, and build output.
+
+GitHub accepted the archive as commit `f6e2683` and completed `Expand source archive` workflow run `#5` successfully in 8 seconds. The public repository now reflects the latest explicit staff dashboard access controls and associated validation coverage.
+
+Post-run source-tree inspection confirmed the workflow’s extraction commit `abeeb75` published `client/src/lib/staffAccess.ts`, including `resolveSellerSection` and role-scoped overview actions, and `client/src/pages/AdminDashboard.test.tsx`, including rendered CTA checks and forbidden-route navigation assertions.
+
 ## Desktop pass
 
 The homepage reads as a premium navy-and-ivory showroom with a clear hero, a functional search dock, a stronger asymmetrical arrival list, a calm three-step route section, and a route-map delivery panel. The refreshed contact band keeps Mugo Gold as a precise action cue rather than a full-bleed background.

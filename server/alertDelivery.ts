@@ -33,6 +33,15 @@ export function hasSmsDelivery(config: AlertDeliveryConfig) {
   return Boolean(config.africasTalkingUsername && config.africasTalkingApiKey && config.africasTalkingSenderId && config.ownerSmsRecipient);
 }
 
+export type AlertDeliveryTarget = { channel: "email" | "sms"; recipient: string; provider: "sendgrid" | "africas_talking"; subject?: string; text: string };
+
+export function getAlertDeliveryTargets(notification: { kind: string; title: string; body: string; href?: string | null }, user: { email?: string | null }, config: AlertDeliveryConfig): AlertDeliveryTarget[] {
+  const targets: AlertDeliveryTarget[] = [];
+  if (user.email && hasEmailDelivery(config)) targets.push({ channel: "email", recipient: user.email, provider: "sendgrid", subject: `Mugo Automobiles: ${notification.title}`, text: `${notification.body}\n\nOpen Mugo Automobiles: ${notification.href ?? "/"}` });
+  if (["aging_inventory", "follow_up"].includes(notification.kind) && hasSmsDelivery(config)) targets.push({ channel: "sms", recipient: config.ownerSmsRecipient, provider: "africas_talking", text: `Mugo Automobiles: ${notification.title}. ${notification.body}`.slice(0, 1500) });
+  return targets;
+}
+
 export async function sendAlertEmail(input: { to: string; subject: string; text: string }, config: AlertDeliveryConfig, fetchImpl: FetchLike = fetch) {
   if (!hasEmailDelivery(config)) return { status: "skipped" as const, error: "SendGrid is not configured" };
   const response = await fetchImpl("https://api.sendgrid.com/v3/mail/send", {
@@ -63,7 +72,7 @@ export async function sendAlertSms(input: { to: string; text: string }, config: 
   }
 }
 
-async function recordDelivery(db: MarketplaceDb, input: { notificationId: number; channel: "email" | "sms"; recipient: string; provider: string; status: "pending" | "sent" | "failed" | "skipped"; providerMessageId?: string; errorMessage?: string }) {
+export async function recordDelivery(db: MarketplaceDb, input: { notificationId: number; channel: "email" | "sms"; recipient: string; provider: string; status: "pending" | "sent" | "failed" | "skipped"; providerMessageId?: string; errorMessage?: string }) {
   const current = (await db.select().from(notificationDeliveries).where(and(eq(notificationDeliveries.notificationId, input.notificationId), eq(notificationDeliveries.channel, input.channel), eq(notificationDeliveries.recipient, input.recipient))).limit(1))[0];
   const values = { notificationId: input.notificationId, channel: input.channel, recipient: input.recipient, provider: input.provider, status: input.status, providerMessageId: input.providerMessageId ?? null, errorMessage: input.errorMessage ?? null, attemptedAt: new Date(), sentAt: input.status === "sent" ? new Date() : null };
   if (current) await db.update(notificationDeliveries).set(values).where(eq(notificationDeliveries.id, current.id));
@@ -76,21 +85,13 @@ export async function deliverPendingMarketplaceAlerts(db: MarketplaceDb, config 
   let smsSent = 0;
   let failed = 0;
   for (const row of rows) {
-    if (row.user.email && hasEmailDelivery(config)) {
-      const existing = (await db.select().from(notificationDeliveries).where(and(eq(notificationDeliveries.notificationId, row.notification.id), eq(notificationDeliveries.channel, "email"), eq(notificationDeliveries.recipient, row.user.email))).limit(1))[0];
+    for (const target of getAlertDeliveryTargets(row.notification, row.user, config)) {
+      const existing = (await db.select().from(notificationDeliveries).where(and(eq(notificationDeliveries.notificationId, row.notification.id), eq(notificationDeliveries.channel, target.channel), eq(notificationDeliveries.recipient, target.recipient))).limit(1))[0];
       if (existing?.status !== "sent") {
-        const result = await sendAlertEmail({ to: row.user.email, subject: `Mugo Automobiles: ${row.notification.title}`, text: `${row.notification.body}\n\nOpen Mugo Automobiles: ${row.notification.href ?? "/"}` }, config, fetchImpl);
-        await recordDelivery(db, { notificationId: row.notification.id, channel: "email", recipient: row.user.email, provider: "sendgrid", status: result.status, providerMessageId: result.status === "sent" ? result.providerMessageId : undefined, errorMessage: result.status === "sent" ? undefined : result.error });
-        if (result.status === "sent") emailSent += 1;
-        if (result.status === "failed") failed += 1;
-      }
-    }
-    if (["aging_inventory", "follow_up"].includes(row.notification.kind) && hasSmsDelivery(config)) {
-      const existing = (await db.select().from(notificationDeliveries).where(and(eq(notificationDeliveries.notificationId, row.notification.id), eq(notificationDeliveries.channel, "sms"), eq(notificationDeliveries.recipient, config.ownerSmsRecipient))).limit(1))[0];
-      if (existing?.status !== "sent") {
-        const result = await sendAlertSms({ to: config.ownerSmsRecipient, text: `Mugo Automobiles: ${row.notification.title}. ${row.notification.body}`.slice(0, 1500) }, config, fetchImpl);
-        await recordDelivery(db, { notificationId: row.notification.id, channel: "sms", recipient: config.ownerSmsRecipient, provider: "africas_talking", status: result.status, providerMessageId: result.status === "sent" ? result.providerMessageId : undefined, errorMessage: result.status === "sent" ? undefined : result.error });
-        if (result.status === "sent") smsSent += 1;
+        const result = target.channel === "email" ? await sendAlertEmail({ to: target.recipient, subject: target.subject!, text: target.text }, config, fetchImpl) : await sendAlertSms({ to: target.recipient, text: target.text }, config, fetchImpl);
+        await recordDelivery(db, { notificationId: row.notification.id, channel: target.channel, recipient: target.recipient, provider: target.provider, status: result.status, providerMessageId: result.status === "sent" ? result.providerMessageId : undefined, errorMessage: result.status === "sent" ? undefined : result.error });
+        if (result.status === "sent" && target.channel === "email") emailSent += 1;
+        if (result.status === "sent" && target.channel === "sms") smsSent += 1;
         if (result.status === "failed") failed += 1;
       }
     }
