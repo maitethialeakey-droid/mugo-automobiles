@@ -1,6 +1,7 @@
 import { and, desc, eq, gte, inArray, lt, lte, sql } from "drizzle-orm";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import * as XLSX from "xlsx";
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import {
   bulkImports,
@@ -36,7 +37,47 @@ const publicInquiryInput = z.object({
   contactPhone: z.string().trim().min(7).max(64).optional(),
   message: z.string().trim().min(4).max(4000),
   source: z.string().max(120).optional(),
+  website: z.string().trim().max(0).optional(),
 }).refine((input) => Boolean(input.contactEmail || input.contactPhone), { message: "Provide an email address or phone number so Mugo can respond." });
+
+const PUBLIC_ENQUIRY_WINDOW_MS = 10 * 60 * 1000;
+const PUBLIC_ENQUIRY_MAX_PER_WINDOW = 4;
+const PUBLIC_ENQUIRY_MAX_TRACKED_CLIENTS = 5_000;
+const publicEnquiryRateBuckets = new Map<string, { count: number; resetAt: number }>();
+
+type PublicEnquiryRequest = {
+  headers?: { [key: string]: string | string[] | undefined };
+  ip?: string;
+  socket?: { remoteAddress?: string | null };
+};
+
+export function getPublicEnquiryClientKey(request: PublicEnquiryRequest) {
+  const forwarded = request.headers?.["x-forwarded-for"];
+  const forwardedValue = Array.isArray(forwarded) ? forwarded[0] : forwarded;
+  return (forwardedValue?.split(",")[0]?.trim() || request.ip || request.socket?.remoteAddress || "unknown").slice(0, 160);
+}
+
+export function claimPublicEnquiryRateLimit(clientKey: string, now = Date.now()) {
+  for (const [key, bucket] of Array.from(publicEnquiryRateBuckets.entries())) {
+    if (bucket.resetAt <= now) publicEnquiryRateBuckets.delete(key);
+  }
+  const existing = publicEnquiryRateBuckets.get(clientKey);
+  if (!existing || existing.resetAt <= now) {
+    if (publicEnquiryRateBuckets.size >= PUBLIC_ENQUIRY_MAX_TRACKED_CLIENTS) {
+      const oldestKey = publicEnquiryRateBuckets.keys().next().value;
+      if (oldestKey) publicEnquiryRateBuckets.delete(oldestKey);
+    }
+    publicEnquiryRateBuckets.set(clientKey, { count: 1, resetAt: now + PUBLIC_ENQUIRY_WINDOW_MS });
+    return true;
+  }
+  if (existing.count >= PUBLIC_ENQUIRY_MAX_PER_WINDOW) return false;
+  existing.count += 1;
+  return true;
+}
+
+export function resetPublicEnquiryRateLimitsForTests() {
+  publicEnquiryRateBuckets.clear();
+}
 
 const vehicleInput = z.object({
   stockNumber: z.string().trim().min(3).max(48),
@@ -348,8 +389,12 @@ export const marketplaceRouter = router({
   }),
   inquiries: router({
     create: publicProcedure.input(publicInquiryInput).mutation(async ({ ctx, input }) => {
+      if (!claimPublicEnquiryRateLimit(getPublicEnquiryClientKey(ctx.req))) {
+        throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Please wait a few minutes before sending another enquiry." });
+      }
       const db = await requireDb();
-      const result = await db.insert(inquiries).values({ ...input, buyerId: ctx.user?.id ?? null, status: "open" });
+      const { website: _website, ...inquiryInput } = input;
+      const result = await db.insert(inquiries).values({ ...inquiryInput, buyerId: ctx.user?.id ?? null, status: "open" });
       return { id: Number(result[0].insertId) };
     }),
     adminList: supportProcedure.query(async () => {

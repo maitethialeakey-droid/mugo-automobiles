@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { describe, expect, it } from "vitest";
 import { appRouter } from "./routers";
+import { claimPublicEnquiryRateLimit, getPublicEnquiryClientKey, resetPublicEnquiryRateLimitsForTests } from "./routers/marketplace";
 import type { TrpcContext } from "./_core/context";
 
 function contextFor(role: "admin" | "user" | "inventory_manager" | "sales_manager" | "support_agent"): TrpcContext {
@@ -35,6 +36,33 @@ describe("marketplace router guards", () => {
   it("requires a response channel for public availability enquiries before a database write", async () => {
     const caller = appRouter.createCaller(contextFor("user"));
     await expect(caller.marketplace.inquiries.create({ contactName: "Catalogue shopper", message: "Please confirm availability for this model.", source: "public-kenya-catalogue" })).rejects.toMatchObject<Partial<TRPCError>>({ code: "BAD_REQUEST" });
+  });
+
+  it("rejects public enquiries that fill the hidden spam-trap field before a database write", async () => {
+    const caller = appRouter.createCaller(contextFor("user"));
+    await expect(caller.marketplace.inquiries.create({ contactName: "Catalogue shopper", contactEmail: "shopper@example.com", message: "Please confirm availability for this model.", source: "public-kenya-catalogue", website: "https://spam.example" })).rejects.toMatchObject<Partial<TRPCError>>({ code: "BAD_REQUEST" });
+  });
+
+  it("limits repeated public enquiries by client key without affecting a different visitor", () => {
+    resetPublicEnquiryRateLimitsForTests();
+    const firstClient = getPublicEnquiryClientKey({ headers: { "x-forwarded-for": "198.51.100.10, 10.0.0.1" } });
+    const secondClient = getPublicEnquiryClientKey({ ip: "198.51.100.11" });
+    expect(firstClient).toBe("198.51.100.10");
+    expect(claimPublicEnquiryRateLimit(firstClient, 1)).toBe(true);
+    expect(claimPublicEnquiryRateLimit(firstClient, 2)).toBe(true);
+    expect(claimPublicEnquiryRateLimit(firstClient, 3)).toBe(true);
+    expect(claimPublicEnquiryRateLimit(firstClient, 4)).toBe(true);
+    expect(claimPublicEnquiryRateLimit(firstClient, 5)).toBe(false);
+    expect(claimPublicEnquiryRateLimit(secondClient, 5)).toBe(true);
+  });
+
+  it("returns TOO_MANY_REQUESTS from the public inquiry procedure after the client threshold is reached", async () => {
+    resetPublicEnquiryRateLimitsForTests();
+    const caller = appRouter.createCaller(contextFor("user"));
+    const now = Date.now();
+    for (let index = 0; index < 4; index += 1) claimPublicEnquiryRateLimit("unknown", now + index);
+    await expect(caller.marketplace.inquiries.create({ contactName: "Rate limited shopper", contactEmail: "shopper@example.com", message: "Please confirm availability for this model.", source: "public-kenya-catalogue" })).rejects.toMatchObject<Partial<TRPCError>>({ code: "TOO_MANY_REQUESTS" });
+    resetPublicEnquiryRateLimitsForTests();
   });
 
   it("validates listing draft fields before seller actions reach storage or the database", async () => {

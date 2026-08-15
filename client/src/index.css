@@ -246,6 +246,7 @@ button { border: 0; }
 .inquiry-modal__catalogue { display: grid; place-items: center; flex: none; width: 96px; height: 70px; background: var(--navy); color: var(--gold); }
 .inquiry-contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .inquiry-contact-grid .form-field { min-width: 0; }
+.inquiry-honeypot { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
 .form-field { display: grid; gap: 7px; margin-top: 14px; }
 .form-field span { color: var(--navy); font-family: Poppins, sans-serif; font-size: 10px; font-weight: 700; }
 .form-field input, .form-field textarea { width: 100%; resize: vertical; border: 1px solid var(--line); outline: 0; padding: 12px 13px; background: #fff; color: var(--navy); font-size: 12px; }
