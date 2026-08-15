@@ -7,4 +7,4 @@
 - [x] Install dependencies and validate type checks, tests, and production build (type check passed; 26 tests passed; production build completed).
 - [x] Start and visually verify a separate local preview at the exposed port-3001 preview URL.
 - [x] Document verification that the standalone source retains the buyer flow, seller dashboard, alert routing code, and disabled payment-capture boundary.
-- [ ] Prepare and synchronize the validated standalone source to the user-approved GitHub repository.
+- [x] Prepare and synchronize the validated standalone source to the user-approved GitHub repository (archive commits `18942c6` and `2ceebf4`; source expansion workflow run #7 completed successfully).
