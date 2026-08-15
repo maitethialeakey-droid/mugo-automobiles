@@ -2,6 +2,7 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { startLogin } from "@/const";
 import { trpc } from "@/lib/trpc";
+import React from "react";
 import { KENYA_CATALOGUE_TEMPLATE_COUNT, KENYA_CATALOGUE_TEMPLATES } from "@shared/kenyaCatalogueTemplates";
 import { useMemo, useState } from "react";
 import {

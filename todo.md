@@ -71,7 +71,7 @@
 - [x] Synchronize the latest validated alert-delivery release source to GitHub.
 - [x] Add a source-controlled public release artifact tied to the alert-delivery routing build identity.
 - [x] Add a source-controlled release note tied to the alert-delivery routing build identity.
-- [ ] Retain independent post-deployment verification of the artifact-backed release identity as a pending release-audit item.
+- [x] Retain independent post-deployment verification of the artifact-backed release identity as a pending release-audit item (both live release endpoints match source metadata; payment capture remains disabled).
 - [x] Synchronize the shared project state and verify the refreshed development preview.
 - [x] Synchronize the latest shared project state and verify the refreshed development preview.
 - [x] Publish the current synchronized Mugo Automobiles project state.
@@ -89,5 +89,6 @@
 - [x] Enhance and test the inventory dashboard for the expanded catalogue (28 tests, TypeScript check, production build, and component-level dashboard rendering verified).
 - [ ] Stage the 180 Kenya catalogue templates in the managed database through an authorized inventory staff session.
 - [ ] Verify the Kenya catalogue staging panel and publication safeguards in a real authenticated inventory staff browser session (preview evidence is recorded in `dashboard-catalogue-verification.md`).
-- [x] Add a public no-sign-in Kenya vehicle catalogue view that clearly distinguishes availability-pending templates from verified live stock (184 models and arrivals verified publicly; availability disclosure and check-availability states shown).
-- [ ] Synchronize the validated public Kenya catalogue and dashboard safeguards to maitethialeakey-droid/mugo-automobiles.
+- [x] Add a public no-sign-in Kenya vehicle catalogue view that clearly distinguishes availability-pending templates from verified live stock (184 models and arrivals verified publicly; availability disclosure and check-availability states shown; direct storefront page test added).
+- [x] Synchronize the validated public Kenya catalogue and dashboard safeguards to maitethialeakey-droid/mugo-automobiles (archive commit `1c398f4`; source-expansion workflow run #9 and extraction commit `7730721` verified).
+- [ ] Synchronize the latest release audit and public storefront page-test coverage to maitethialeakey-droid/mugo-automobiles.
