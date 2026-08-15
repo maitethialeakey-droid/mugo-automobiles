@@ -32,6 +32,24 @@ GitHub accepted the archive as commit `f6e2683` and completed `Expand source arc
 
 Post-run source-tree inspection confirmed the workflow’s extraction commit `abeeb75` published `client/src/lib/staffAccess.ts`, including `resolveSellerSection` and role-scoped overview actions, and `client/src/pages/AdminDashboard.test.tsx`, including rendered CTA checks and forbidden-route navigation assertions.
 
+The latest alert-delivery routing release source archive has been submitted to the workflow-consumed archive path with the commit summary `Publish latest alert delivery routing release`. It contains explicit email/SMS target routing and idempotent delivery-record test coverage, while excluding credentials, local logs, and build output.
+
+GitHub accepted the archive as commit `2e6a106` and completed `Expand source archive` workflow run `#6` successfully in 11 seconds, publishing the latest alert-delivery routing release into the public source tree.
+
+Post-run inspection confirmed extraction commit `4339c8b` published `server/alertDelivery.ts` with the explicit `getAlertDeliveryTargets` routing helper and idempotent `recordDelivery` persistence in the public repository.
+
+The managed production URL https://mugovehics-jqywy3u3.manus.space was verified after the alert-delivery release. The public storefront loaded successfully, including navigation, live inventory cards, filters, comparison controls, and inquiry entry points.
+
+Production routing investigation confirmed the managed domain serves the tRPC backend: a public `marketplace.vehicles.publicList` request returned its typed validation response. The new `/api/release` endpoint initially returned a frontend 404, so release endpoint propagation remains under verification before the backend-release checklist can be closed.
+
+After deployment propagation, the public `/api/release` endpoint returned `alert-delivery-routing-v1` with `alertDeliveryRouting: true` and `paymentCaptureEnabled: false`, conclusively confirming the current production backend includes the latest alert-delivery routing release.
+
+Independent fresh retrieval of the managed production `/api/release` endpoint returned the same release marker: `service: mugo-automobiles`, `release: alert-delivery-routing-v1`, `alertDeliveryRouting: true`, and `paymentCaptureEnabled: false`. This documents that the initial 404 was a propagation delay, not a persistent routing defect.
+
+The source-controlled `client/public/release.json` artifact was added and validated against the backend metadata in the local production build. Its first public retrieval returned a temporary 404, so static artifact propagation remains under verification.
+
+After publishing the explicit `/release.json` route, the managed production URL returned `alert-delivery-routing-v1` with `alertDeliveryRouting: true` and `paymentCaptureEnabled: false`. The public artifact-backed identity now matches the source-controlled backend release metadata.
+
 ## Desktop pass
 
 The homepage reads as a premium navy-and-ivory showroom with a clear hero, a functional search dock, a stronger asymmetrical arrival list, a calm three-step route section, and a route-map delivery panel. The refreshed contact band keeps Mugo Gold as a precise action cue rather than a full-bleed background.
