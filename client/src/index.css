@@ -243,6 +243,9 @@ button { border: 0; }
 .inquiry-modal__vehicle div { display: grid; gap: 4px; }
 .inquiry-modal__vehicle strong { color: var(--navy); font-family: Poppins, sans-serif; font-size: 14px; }
 .inquiry-modal__vehicle span { color: var(--muted); font-size: 10px; }
+.inquiry-modal__catalogue { display: grid; place-items: center; flex: none; width: 96px; height: 70px; background: var(--navy); color: var(--gold); }
+.inquiry-contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.inquiry-contact-grid .form-field { min-width: 0; }
 .form-field { display: grid; gap: 7px; margin-top: 14px; }
 .form-field span { color: var(--navy); font-family: Poppins, sans-serif; font-size: 10px; font-weight: 700; }
 .form-field input, .form-field textarea { width: 100%; resize: vertical; border: 1px solid var(--line); outline: 0; padding: 12px 13px; background: #fff; color: var(--navy); font-size: 12px; }
@@ -325,6 +328,7 @@ button { border: 0; }
   .footer-location { justify-items: start; text-align: left; }
   .footer-bottom { align-items: flex-start; flex-direction: column; gap: 10px; }
   .inquiry-modal { padding: 32px 22px 25px; }
+  .inquiry-contact-grid { grid-template-columns: 1fr; gap: 0; }
   .comparison-tray { right: 10px; bottom: 10px; left: 10px; align-items: stretch; flex-direction: column; gap: 12px; padding: 13px; }
   .comparison-tray__copy { justify-content: space-between; }
   .comparison-tray__items { flex: none; }

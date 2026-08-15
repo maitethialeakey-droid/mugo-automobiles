@@ -32,6 +32,11 @@ describe("marketplace router guards", () => {
     await expect(caller.marketplace.finance.estimate({ vehicleId: 1, downPaymentKsh: 0, loanTermMonths: 3, annualRateBasisPoints: 1450 })).rejects.toMatchObject<Partial<TRPCError>>({ code: "BAD_REQUEST" });
   });
 
+  it("requires a response channel for public availability enquiries before a database write", async () => {
+    const caller = appRouter.createCaller(contextFor("user"));
+    await expect(caller.marketplace.inquiries.create({ contactName: "Catalogue shopper", message: "Please confirm availability for this model.", source: "public-kenya-catalogue" })).rejects.toMatchObject<Partial<TRPCError>>({ code: "BAD_REQUEST" });
+  });
+
   it("validates listing draft fields before seller actions reach storage or the database", async () => {
     const caller = appRouter.createCaller(contextFor("admin"));
     await expect(caller.marketplace.vehicles.create({ stockNumber: "A", make: "", model: "", year: 2020, priceKsh: 0, status: "draft" })).rejects.toMatchObject<Partial<TRPCError>>({ code: "BAD_REQUEST" });

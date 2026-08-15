@@ -9,6 +9,7 @@ vi.mock("@/lib/trpc", () => ({
     marketplace: {
       vehicles: { publicList: { useQuery: () => ({ data: [] }) } },
       buyer: { saveVehicle: { useMutation: () => ({ mutate: vi.fn() }) }, unsaveVehicle: { useMutation: () => ({ mutate: vi.fn() }) } },
+      inquiries: { create: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) } },
     },
   },
 }));

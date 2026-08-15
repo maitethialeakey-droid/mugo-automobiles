@@ -29,6 +29,14 @@ import { KENYA_CATALOGUE_TEMPLATES, isKenyaCatalogueTemplate } from "@shared/ken
 const vehicleStatuses = ["draft", "published", "archived"] as const;
 const vehicleAvailability = ["available", "reserved", "sold"] as const;
 const orderStatuses = ["inquiry", "reserved", "paid", "shipping", "delivered", "closed", "cancelled", "refunded"] as const;
+const publicInquiryInput = z.object({
+  vehicleId: z.number().int().positive().optional(),
+  contactName: z.string().trim().min(2).max(160),
+  contactEmail: z.string().trim().email().optional(),
+  contactPhone: z.string().trim().min(7).max(64).optional(),
+  message: z.string().trim().min(4).max(4000),
+  source: z.string().max(120).optional(),
+}).refine((input) => Boolean(input.contactEmail || input.contactPhone), { message: "Provide an email address or phone number so Mugo can respond." });
 
 const vehicleInput = z.object({
   stockNumber: z.string().trim().min(3).max(48),
@@ -339,7 +347,7 @@ export const marketplaceRouter = router({
     }),
   }),
   inquiries: router({
-    create: publicProcedure.input(z.object({ vehicleId: z.number().int().positive().optional(), contactName: z.string().trim().min(2).max(160), contactEmail: z.string().email().optional(), contactPhone: z.string().max(64).optional(), message: z.string().trim().min(4).max(4000), source: z.string().max(120).optional() })).mutation(async ({ ctx, input }) => {
+    create: publicProcedure.input(publicInquiryInput).mutation(async ({ ctx, input }) => {
       const db = await requireDb();
       const result = await db.insert(inquiries).values({ ...input, buyerId: ctx.user?.id ?? null, status: "open" });
       return { id: Number(result[0].insertId) };

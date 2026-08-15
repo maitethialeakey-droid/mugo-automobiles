@@ -135,6 +135,10 @@ export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [inquiryVehicle, setInquiryVehicle] = useState<Vehicle | null>(null);
   const [contactOpen, setContactOpen] = useState(false);
+  const [inquiryName, setInquiryName] = useState("");
+  const [inquiryEmail, setInquiryEmail] = useState("");
+  const [inquiryPhone, setInquiryPhone] = useState("");
+  const [inquiryMessage, setInquiryMessage] = useState("");
   const [toast, setToast] = useState<string | null>(null);
   const [showCatalogue, setShowCatalogue] = useState(false);
 
@@ -142,6 +146,7 @@ export default function Home() {
   const publishedInventory = trpc.marketplace.vehicles.publicList.useQuery(inventoryQueryInput);
   const saveVehicle = trpc.marketplace.buyer.saveVehicle.useMutation();
   const unsaveVehicle = trpc.marketplace.buyer.unsaveVehicle.useMutation();
+  const createInquiry = trpc.marketplace.inquiries.create.useMutation();
 
   const liveVehicles = useMemo<Vehicle[]>(() => {
     if (!publishedInventory.data?.length) return vehicles;
@@ -227,6 +232,40 @@ export default function Home() {
   const scrollToInventory = () => {
     document.getElementById("inventory")?.scrollIntoView({ behavior: "smooth" });
     setMobileMenuOpen(false);
+  };
+
+  const closeInquiry = () => {
+    setInquiryVehicle(null);
+    setContactOpen(false);
+  };
+
+  const submitInquiry = () => {
+    const name = inquiryName.trim();
+    const message = inquiryMessage.trim();
+    const email = inquiryEmail.trim();
+    const phone = inquiryPhone.trim();
+    if (name.length < 2 || message.length < 4 || (!email && !phone)) {
+      notify("Please add your name, a message, and an email address or phone number.");
+      return;
+    }
+    createInquiry.mutate({
+      ...(inquiryVehicle && !inquiryVehicle.isCatalogue ? { vehicleId: inquiryVehicle.id } : {}),
+      contactName: name,
+      ...(email ? { contactEmail: email } : {}),
+      ...(phone ? { contactPhone: phone } : {}),
+      message,
+      source: inquiryVehicle?.isCatalogue ? "public-kenya-catalogue" : inquiryVehicle ? "public-vehicle-card" : "public-contact",
+    }, {
+      onSuccess: () => {
+        setInquiryName("");
+        setInquiryEmail("");
+        setInquiryPhone("");
+        setInquiryMessage("");
+        closeInquiry();
+        notify(inquiryVehicle?.isCatalogue ? "Availability request sent. A Mugo guide will confirm current sourcing options." : "Your enquiry has been sent to a Mugo guide.");
+      },
+      onError: () => notify("We could not send your enquiry. Please try again shortly."),
+    });
   };
 
   return (
@@ -389,7 +428,7 @@ export default function Home() {
 
       {comparisonOpen && <div className="modal-backdrop" role="presentation" onClick={() => setComparisonOpen(false)}><div className="comparison-modal" role="dialog" aria-modal="true" aria-labelledby="comparison-title" onClick={(event) => event.stopPropagation()}><div className="comparison-modal__header"><div><span className="eyebrow eyebrow--gold-dark">Your shortlist</span><h2 id="comparison-title">Compare the<br /><em>details.</em></h2><p>Put the useful differences next to each other before you make your next move.</p></div><button className="modal-close" onClick={() => setComparisonOpen(false)} aria-label="Close comparison"><X size={18} /></button></div><div className="compare-table"><div className="compare-table__head compare-table__row"><div className="compare-table__label">Vehicle</div>{compareVehicles.map((vehicle) => <div className="compare-table__vehicle" key={vehicle.id}><img src={vehicle.image} alt="" /><span>{vehicle.tag}</span><strong>{vehicle.name}</strong></div>)}</div>{[["Price", (vehicle: Vehicle) => vehicle.price], ["Year", (vehicle: Vehicle) => vehicle.year], ["Mileage", (vehicle: Vehicle) => vehicle.mileage], ["Fuel", (vehicle: Vehicle) => vehicle.fuel], ["Transmission", (vehicle: Vehicle) => vehicle.transmission], ["Location", (vehicle: Vehicle) => vehicle.location]].map(([label, getValue]) => <div className="compare-table__row" key={label as string}><div className="compare-table__label">{label as string}</div>{compareVehicles.map((vehicle) => <div className="compare-table__cell" key={`${vehicle.id}-${label}`}>{(getValue as (item: Vehicle) => string | number)(vehicle)}</div>)}</div>)}</div><div className="comparison-modal__footer"><span><BadgeCheck size={15} /> Every comparison is based on the current arrival list.</span><div><button className="comparison-clear" onClick={() => { setCompareIds([]); setComparisonOpen(false); }}>Clear shortlist</button><button className="button button--navy" onClick={() => { setInquiryVehicle(compareVehicles[0]); setComparisonOpen(false); }}>Ask about a vehicle <ArrowRight size={16} /></button></div></div></div></div>}
 
-      {(inquiryVehicle || contactOpen) && <div className="modal-backdrop" role="presentation" onClick={() => { setInquiryVehicle(null); setContactOpen(false); }}><div className="inquiry-modal" role="dialog" aria-modal="true" aria-labelledby="inquiry-title" onClick={(event) => event.stopPropagation()}><button className="modal-close" onClick={() => { setInquiryVehicle(null); setContactOpen(false); }} aria-label="Close enquiry"><X size={18} /></button><span className="eyebrow eyebrow--gold-dark">{inquiryVehicle ? "Your next move" : "A considered start"}</span><h2 id="inquiry-title">{inquiryVehicle ? <>Ask about<br /><em>{inquiryVehicle.name}</em></> : <>Tell us what<br /><em>you are looking for.</em></>}</h2><p className="inquiry-modal__intro">Tell us how you would like to continue and a Mugo guide will come back with the useful details.</p>{inquiryVehicle && <div className="inquiry-modal__vehicle"><img src={inquiryVehicle.image} alt="" /><div><strong>{inquiryVehicle.price}</strong><span>{inquiryVehicle.year} · {inquiryVehicle.mileage} · {inquiryVehicle.location}</span></div></div>}<label className="form-field"><span>Your name</span><input placeholder="How should we address you?" /></label><label className="form-field"><span>What would you like to know?</span><textarea placeholder="Availability, a make, a route, or anything else." rows={3} /></label><button className="button button--navy button--full" onClick={() => { setInquiryVehicle(null); setContactOpen(false); notify("Your enquiry is ready for a Mugo guide."); }}>Send enquiry <ArrowRight size={17} /></button><small className="form-note">No pressure. No noisy follow-ups. Just the next useful detail.</small></div></div>}
+      {(inquiryVehicle || contactOpen) && <div className="modal-backdrop" role="presentation" onClick={closeInquiry}><div className="inquiry-modal" role="dialog" aria-modal="true" aria-labelledby="inquiry-title" onClick={(event) => event.stopPropagation()}><button className="modal-close" onClick={closeInquiry} aria-label="Close enquiry"><X size={18} /></button><span className="eyebrow eyebrow--gold-dark">{inquiryVehicle?.isCatalogue ? "Availability request" : inquiryVehicle ? "Your next move" : "A considered start"}</span><h2 id="inquiry-title">{inquiryVehicle ? <>{inquiryVehicle.isCatalogue ? <>Check availability for<br /></> : <>Ask about<br /></>}<em>{inquiryVehicle.name}</em></> : <>Tell us what<br /><em>you are looking for.</em></>}</h2><p className="inquiry-modal__intro">{inquiryVehicle?.isCatalogue ? "Share your preferred year, budget, and route. A Mugo guide will confirm current sourcing options before any commitment." : "Tell us how you would like to continue and a Mugo guide will come back with the useful details."}</p>{inquiryVehicle && <div className="inquiry-modal__vehicle">{inquiryVehicle.isCatalogue ? <div className="inquiry-modal__catalogue"><CarFront size={22} /></div> : <img src={inquiryVehicle.image} alt="" />}<div><strong>{inquiryVehicle.price}</strong><span>{inquiryVehicle.year} · {inquiryVehicle.mileage} · {inquiryVehicle.location}</span></div></div>}<label className="form-field"><span>Your name</span><input value={inquiryName} onChange={(event) => setInquiryName(event.currentTarget.value)} placeholder="How should we address you?" autoComplete="name" /></label><div className="inquiry-contact-grid"><label className="form-field"><span>Email</span><input value={inquiryEmail} onChange={(event) => setInquiryEmail(event.currentTarget.value)} placeholder="you@example.com" type="email" autoComplete="email" /></label><label className="form-field"><span>Phone</span><input value={inquiryPhone} onChange={(event) => setInquiryPhone(event.currentTarget.value)} placeholder="+254..." type="tel" autoComplete="tel" /></label></div><label className="form-field"><span>What would you like to know?</span><textarea value={inquiryMessage} onChange={(event) => setInquiryMessage(event.currentTarget.value)} placeholder="Availability, a make, a route, or anything else." rows={3} /></label><button className="button button--navy button--full" disabled={createInquiry.isPending} onClick={submitInquiry}>{createInquiry.isPending ? "Sending enquiry..." : "Send enquiry"} <ArrowRight size={17} /></button><small className="form-note">Please include an email address or phone number. No pressure. No noisy follow-ups. Just the next useful detail.</small></div></div>}
     </div>
   );
 }
