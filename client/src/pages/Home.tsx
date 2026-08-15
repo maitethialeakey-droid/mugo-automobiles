@@ -2,11 +2,13 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { startLogin } from "@/const";
 import { trpc } from "@/lib/trpc";
+import { KENYA_CATALOGUE_TEMPLATE_COUNT, KENYA_CATALOGUE_TEMPLATES } from "@shared/kenyaCatalogueTemplates";
 import { useMemo, useState } from "react";
 import {
   ArrowDownRight,
   ArrowRight,
   BadgeCheck,
+  CarFront,
   Check,
   ChevronDown,
   CircleDollarSign,
@@ -42,6 +44,8 @@ type Vehicle = {
   tag: string;
   image: string;
   description: string;
+  bodyType: string;
+  isCatalogue?: boolean;
 };
 
 const vehicles: Vehicle[] = [
@@ -59,6 +63,7 @@ const vehicles: Vehicle[] = [
     tag: "Fresh arrival",
     image: HERO_IMAGE,
     description: "Scandinavian calm with the confidence of a proper long-distance tourer.",
+    bodyType: "SUV",
   },
   {
     id: 2,
@@ -74,6 +79,7 @@ const vehicles: Vehicle[] = [
     tag: "Kenya-ready",
     image: "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&w=1600&q=85",
     description: "A precise executive sedan with quiet confidence in every line.",
+    bodyType: "Sedan",
   },
   {
     id: 3,
@@ -89,6 +95,7 @@ const vehicles: Vehicle[] = [
     tag: "Export ready",
     image: "https://images.unsplash.com/photo-1553440569-bcc63803a83d?auto=format&fit=crop&w=1600&q=85",
     description: "A composed, capable crossover for the city-to-coast route.",
+    bodyType: "SUV",
   },
   {
     id: 4,
@@ -104,6 +111,7 @@ const vehicles: Vehicle[] = [
     tag: "Curated pick",
     image: "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=1600&q=85",
     description: "A compact daily with just enough edge to make the long way home appealing.",
+    bodyType: "Hatchback",
   },
 ];
 
@@ -127,6 +135,7 @@ export default function Home() {
   const [inquiryVehicle, setInquiryVehicle] = useState<Vehicle | null>(null);
   const [contactOpen, setContactOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [showCatalogue, setShowCatalogue] = useState(false);
 
   const inventoryQueryInput = useMemo(() => ({ query }), [query]);
   const publishedInventory = trpc.marketplace.vehicles.publicList.useQuery(inventoryQueryInput);
@@ -149,20 +158,41 @@ export default function Home() {
       tag: vehicle.availability === "available" ? "Fresh arrival" : vehicle.availability,
       image: vehicle.media.find((item) => item.isCover)?.url ?? vehicle.media[0]?.url ?? HERO_IMAGE,
       description: vehicle.description ?? vehicle.conditionSummary ?? "A considered arrival with full details available on request.",
+      bodyType: vehicle.bodyType ?? "Other",
     }));
   }, [publishedInventory.data]);
 
+  const catalogueVehicles = useMemo<Vehicle[]>(() => KENYA_CATALOGUE_TEMPLATES.map((vehicle, index) => ({
+    id: 10_000 + index,
+    name: `${vehicle.make} ${vehicle.model}`,
+    year: vehicle.year,
+    price: "Check availability",
+    priceValue: 0,
+    mileage: "Inspection pending",
+    mileageValue: 0,
+    fuel: vehicle.fuelType,
+    transmission: vehicle.transmission,
+    location: "Kenya sourcing catalogue",
+    tag: "Availability pending",
+    image: "",
+    description: "Catalogue template only. Ask Mugo to check sourcing, condition, VIN, price, and current availability.",
+    bodyType: vehicle.bodyType,
+    isCatalogue: true,
+  })), []);
+
+  const browseVehicles = useMemo(() => showCatalogue ? [...liveVehicles, ...catalogueVehicles] : liveVehicles, [catalogueVehicles, liveVehicles, showCatalogue]);
+
   const filteredVehicles = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
-    return liveVehicles.filter((vehicle) => {
+    return browseVehicles.filter((vehicle) => {
       const matchesQuery = !normalizedQuery || `${vehicle.name} ${vehicle.location} ${vehicle.tag}`.toLowerCase().includes(normalizedQuery);
-      const matchesType = selectedType === "All body types" || (selectedType === "SUV" && vehicle.name.includes("XC60")) || (selectedType === "Sedan" && vehicle.name.includes("C200")) || (selectedType === "Hatchback" && vehicle.name.includes("Golf"));
-      const matchesPrice = priceBand === "Any price" || (priceBand === "Under KES 5M" && vehicle.priceValue < 5) || (priceBand === "KES 5M – 7M" && vehicle.priceValue >= 5 && vehicle.priceValue <= 7) || (priceBand === "Above KES 7M" && vehicle.priceValue > 7);
+      const matchesType = selectedType === "All body types" || vehicle.bodyType === selectedType;
+      const matchesPrice = vehicle.isCatalogue ? priceBand === "Any price" : priceBand === "Any price" || (priceBand === "Under KES 5M" && vehicle.priceValue < 5) || (priceBand === "KES 5M – 7M" && vehicle.priceValue >= 5 && vehicle.priceValue <= 7) || (priceBand === "Above KES 7M" && vehicle.priceValue > 7);
       return matchesQuery && matchesType && matchesPrice;
     });
-  }, [liveVehicles, priceBand, query, selectedType]);
+  }, [browseVehicles, priceBand, query, selectedType]);
 
-  const compareVehicles = useMemo(() => liveVehicles.filter((vehicle) => compareIds.includes(vehicle.id)), [compareIds, liveVehicles]);
+  const compareVehicles = useMemo(() => browseVehicles.filter((vehicle) => compareIds.includes(vehicle.id)), [browseVehicles, compareIds]);
 
   const notify = (message: string) => {
     setToast(message);
@@ -171,11 +201,12 @@ export default function Home() {
 
   const toggleSaved = (id: number) => {
     setSavedIds((current) => current.includes(id) ? current.filter((savedId) => savedId !== id) : [...current, id]);
-    if (isAuthenticated) {
+    const vehicle = browseVehicles.find((item) => item.id === id);
+    if (isAuthenticated && !vehicle?.isCatalogue) {
       if (savedIds.includes(id)) unsaveVehicle.mutate({ vehicleId: id });
       else saveVehicle.mutate({ vehicleId: id });
     }
-    notify(savedIds.includes(id) ? "Removed from your saved list." : "Saved to your shortlist.");
+    notify(savedIds.includes(id) ? "Removed from your saved list." : vehicle?.isCatalogue ? "Saved locally. We will confirm availability before adding it to your garage." : "Saved to your shortlist.");
   };
 
   const toggleCompare = (vehicle: Vehicle) => {
@@ -298,29 +329,30 @@ export default function Home() {
             </div>
             <div className="section-heading__side">
               <p>Every listing is selected for condition, story, and the way it will feel when it becomes yours.</p>
-              <button className="text-link" onClick={() => notify("The full inventory workspace is coming next.")}>View all stock <ArrowRight size={16} /></button>
+              <button className="text-link" onClick={() => setShowCatalogue((visible) => !visible)}>{showCatalogue ? "Show verified arrivals" : `Browse ${KENYA_CATALOGUE_TEMPLATE_COUNT} Kenya models`} <ArrowRight size={16} /></button>
             </div>
           </div>
 
           <div className="inventory-rail">
-            <div className="inventory-rail__line"><span>{filteredVehicles.length.toString().padStart(2, "0")} vehicles shown</span><span><SlidersHorizontal size={15} /> Filters update live · compare up to 3</span></div>
+            {showCatalogue && <div className="catalogue-disclosure"><ShieldCheck size={18} /><div><strong>Kenya vehicle catalogue</strong><span>These are availability-pending model templates, not verified offers. Confirm stock, condition, VIN, media, and price with Mugo before proceeding.</span></div></div>}
+            <div className="inventory-rail__line"><span>{filteredVehicles.length.toString().padStart(2, "0")} {showCatalogue ? "models and arrivals" : "verified arrivals"} shown</span><span><SlidersHorizontal size={15} /> Filters update live · compare up to 3</span></div>
             <div className="vehicle-grid">
               {filteredVehicles.length ? filteredVehicles.map((vehicle, index) => (
-                <article className={`vehicle-card ${index === 0 ? "vehicle-card--lead" : ""}`} key={vehicle.id}>
+                <article className={`vehicle-card ${index === 0 && !vehicle.isCatalogue ? "vehicle-card--lead" : ""} ${vehicle.isCatalogue ? "vehicle-card--catalogue" : ""}`} key={vehicle.id}>
                   <div className="vehicle-card__image-wrap">
-                    <img src={vehicle.image} alt={vehicle.name} className="vehicle-card__image" />
+                    {vehicle.isCatalogue ? <div className="catalogue-card__media" aria-label={`${vehicle.name} catalogue template`}><CarFront size={42} /><span>Kenya catalogue</span></div> : <img src={vehicle.image} alt={vehicle.name} className="vehicle-card__image" />}
                     <div className="vehicle-card__image-overlay" />
                     <span className="vehicle-card__tag">{vehicle.tag}</span>
                     <button className={`save-button ${savedIds.includes(vehicle.id) ? "save-button--saved" : ""}`} onClick={() => toggleSaved(vehicle.id)} aria-label={`${savedIds.includes(vehicle.id) ? "Remove" : "Save"} ${vehicle.name}`}>
                       <Heart size={17} fill={savedIds.includes(vehicle.id) ? "currentColor" : "none"} />
                     </button>
-                    {index === 0 && <span className="vehicle-card__index">01 / 04</span>}
+                    {index === 0 && !vehicle.isCatalogue && <span className="vehicle-card__index">01 / 04</span>}
                   </div>
                   <div className="vehicle-card__body">
                     <div className="vehicle-card__title-row"><div><span className="vehicle-year">{vehicle.year} · {vehicle.location}</span><h3>{vehicle.name}</h3></div><strong className="vehicle-price">{vehicle.price}</strong></div>
                     <p>{vehicle.description}</p>
                     <div className="vehicle-specs"><span><Gauge size={15} /> {vehicle.mileage}</span><span><Fuel size={15} /> {vehicle.fuel}</span><span><BadgeCheck size={15} /> {vehicle.transmission}</span></div>
-                    <div className="card-actions"><button className="card-action" onClick={() => setInquiryVehicle(vehicle)}>Ask about this car <ArrowRight size={15} /></button><button className={`compare-toggle ${compareIds.includes(vehicle.id) ? "compare-toggle--active" : ""}`} onClick={() => toggleCompare(vehicle)} aria-pressed={compareIds.includes(vehicle.id)}><GitCompareArrows size={14} /> {compareIds.includes(vehicle.id) ? "Comparing" : "Compare"}</button></div>
+                    <div className="card-actions"><button className="card-action" onClick={() => setInquiryVehicle(vehicle)}>{vehicle.isCatalogue ? "Check availability" : "Ask about this car"} <ArrowRight size={15} /></button><button className={`compare-toggle ${compareIds.includes(vehicle.id) ? "compare-toggle--active" : ""}`} onClick={() => toggleCompare(vehicle)} aria-pressed={compareIds.includes(vehicle.id)}><GitCompareArrows size={14} /> {compareIds.includes(vehicle.id) ? "Comparing" : "Compare"}</button></div>
                   </div>
                 </article>
               )) : <div className="empty-state"><Search size={24} /><strong>No cars match that route.</strong><span>Try a wider search or reset the filters.</span><button className="button button--outline" onClick={() => { setQuery(""); setSelectedType("All body types"); setPriceBand("Any price"); }}>Reset filters</button></div>}

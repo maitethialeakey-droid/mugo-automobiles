@@ -1,10 +1,93 @@
-# Standalone MUGO AUTOMOBILES Website TODO
+# Vehicle comparison feature
 
-- [x] Create a standalone source copy of the approved Mugo Automobiles reference website.
-- [x] Preserve the Nairobi Atelier public storefront, buyer and seller areas, role controls, inventory, alerts, and payment safety boundary.
-- [x] Identify the separate project package as `mugo-automobiles-standalone`.
-- [x] Add standalone setup and safety documentation.
-- [x] Install dependencies and validate type checks, tests, and production build (type check passed; 26 tests passed; production build completed).
-- [x] Start and visually verify a separate local preview at the exposed port-3001 preview URL.
-- [x] Document verification that the standalone source retains the buyer flow, seller dashboard, alert routing code, and disabled payment-capture boundary.
-- [x] Prepare and synchronize the validated standalone source to the user-approved GitHub repository (archive commits `18942c6` and `2ceebf4`; source expansion workflow run #7 completed successfully).
+- [x] Add comparison selection state with a maximum of three vehicles.
+- [x] Add compare controls to inventory cards and a persistent comparison tray.
+- [x] Add a responsive side-by-side comparison dialog with key vehicle specs.
+- [x] Add remove, clear, and empty states for comparison.
+- [x] Run type checks, build, and responsive screenshot verification.
+
+# Marketplace platform expansion
+
+- [x] Confirm whether to build the full marketplace now or deliver it in staged milestones.
+- [x] Confirm the preferred payment gateway order and whether live merchant credentials are available.
+- [x] Proceed with no live payment rail initially; keep payment providers extensible for the next integration step.
+- [x] Use the existing Manus sign-in flow for buyer authentication.
+- [x] Confirm that the initial release should support multiple staff roles.
+- [x] Superseded by the more specific role-model checklist below: define operations, inventory, sales, and support roles.
+- [x] Superseded by the more specific role-model checklist below: enforce staff permissions in procedures and navigation.
+- [x] Superseded by the more specific role-model checklist below: test role-specific access boundaries.
+- [x] Define administrator, inventory manager, sales manager, support agent, and buyer roles with explicit marketplace responsibilities.
+- [x] Enforce staff role permissions in marketplace procedures and dashboard navigation.
+- [x] Test and verify role-specific access boundaries.
+- [x] Make seller navigation role-aware for inventory, sales, support, and administrator staff.
+- [ ] Perform authenticated acceptance checks for role-specific routes and protected actions.
+- [x] Implement explicit role-based overview action rendering instead of global CSS-only hiding.
+- [x] Gate seller dashboard CTA controls by the permitted staff roles for each section.
+- [x] Add validation coverage for role-aware dashboard CTAs and protected direct-link flows.
+- [x] Assert actual navigation when staff visit forbidden `/admin/:section` routes.
+- [x] Expand rendered CTA coverage to administrator, inventory, sales, and support roles, including section-specific controls.
+- [x] Upgrade the static project with backend, authentication, database, and file storage.
+- [x] Add inventory lifecycle, spreadsheet import, duplication, ordered media, browser-side image compression, and aging-inventory visibility.
+- [x] Add seller/admin dashboard with pipeline, reconciliation controls, refunds, customer CRM foundation, and analytics readiness.
+- [x] Add buyer dashboard with saved searches, documents, order tracking, inquiry history, and financing calculator.
+- [x] Add generated invoice/receipt PDFs, condition-report data model, and landed-cost fields per vehicle.
+- [ ] Add scheduled buyer alerts and reminders, plus live payment-provider webhook reconciliation, after provider credentials and message-delivery decisions are supplied.
+- [x] Test permissions, validation, type checking, production build, and desktop dashboard states.
+- [x] Verify core admin inventory and buyer dashboard rendering at a narrow mobile viewport.
+- [x] Verify mobile seller overview and order routes plus buyer navigation layout at a narrow viewport.
+- [ ] Perform owner-session acceptance testing for mobile uploads, listing modal submission, sidebar toggling, buyer tab changes, and order actions.
+- [x] Record the initial owner alert recipients for email and SMS delivery.
+- [x] Select SendGrid as the email delivery provider for maitethialeakey@gmail.com.
+- [ ] Obtain and configure a SendGrid API key and verified sender identity.
+- [x] Select Africa’s Talking as the SMS delivery provider for +254729326122.
+- [ ] Obtain and configure the Africa’s Talking username, API key, and approved sender identity.
+- [x] Create and persist the daily 09:00 EAT production heartbeat for the in-app price-drop, saved-search, aging-inventory, and follow-up scan.
+- [ ] Validate email and SMS alert delivery after the SendGrid and Africa’s Talking credentials are configured.
+- [x] Implement durable in-app alert records, a deduplicated alert scanner, an authenticated alert inbox endpoint, and a cron-safe callback handler.
+- [x] Close the obsolete Leakeylabs/mugo-automobiles target after the owner selected maitethialeakey-droid instead.
+- [x] Identify the intended repository under maitethialeakey-droid and export the current project source after authorization.
+- [x] Create and export the project to the confirmed public maitethialeakey-droid/mugo-automobiles repository as a browsable source tree.
+- [x] Restart and verify the development server after the reported preview outage.
+- [x] Implement credential-safe SendGrid and Africa’s Talking delivery adapters for scheduled marketplace alerts.
+- [x] Wire the scheduled alert scan to route eligible notification records through configured email and SMS providers.
+- [x] Add provider-configuration validation and delivery-adapter tests without exposing secrets.
+- [ ] Configure the approved owner SMS recipient as protected server configuration for Africa’s Talking delivery.
+- [x] Add routing tests that cover alert delivery records for email and SMS channels.
+- [x] Synchronize the latest validated marketplace changes to maitethialeakey-droid/mugo-automobiles.
+- [x] Add provider-neutral payment-intent and reconciliation contracts for bank transfer, M-Pesa, Airtel Money, PayPal, Payoneer, and crypto.
+- [ ] Implement provider-specific webhook signature verification before any payment event can be processed.
+- [x] Add the PayPal verification-API adapter; verified PayPal receipts remain non-processing until live activation is separately approved.
+- [x] Keep payment capture disabled until merchant credentials, compliance review, and explicit activation approval are supplied.
+- [x] Add webhook tests for unknown providers, inactive receipts, duplicate events, and verified-versus-unverified processing.
+- [ ] Collect merchant-approved secure configuration for bank transfer, M-Pesa, Airtel Money, PayPal, Payoneer, and a named crypto processor.
+- [ ] Implement provider-specific webhook verification for each merchant-approved rail before payment state changes can be enabled.
+- [ ] Run sandbox-only payment and reconciliation acceptance checks for every configured provider.
+- [ ] Obtain explicit final approval before enabling live payment capture for each rail.
+- [x] Reject placeholder payment configuration values so only genuine merchant credentials can mark a provider as configured.
+- [x] Restart and verify the development server after the latest reported preview outage.
+- [x] Verify the live managed deployment at https://mugovehics-jqywy3u3.manus.space after the latest release.
+- [x] Synchronize the latest validated source checkpoint to maitethialeakey-droid/mugo-automobiles.
+- [x] Verify the public expanded source tree contains the latest staff-access enhancement files.
+- [x] Synchronize the latest validated alert-delivery release source to GitHub.
+- [x] Add a source-controlled public release artifact tied to the alert-delivery routing build identity.
+- [x] Add a source-controlled release note tied to the alert-delivery routing build identity.
+- [ ] Retain independent post-deployment verification of the artifact-backed release identity as a pending release-audit item.
+- [x] Synchronize the shared project state and verify the refreshed development preview.
+- [x] Synchronize the latest shared project state and verify the refreshed development preview.
+- [x] Publish the current synchronized Mugo Automobiles project state.
+- [x] Save a release checkpoint for the publish-ready project state.
+- [x] Verify the live deployment and record the released version after publication (version 7f18abb2; production homepage reachable).
+- [x] Synchronize the latest shared project changes, publish them to mugovehics-jqywy3u3.manus.space, and verify the live release (version 52b0071a; public homepage reachable).
+- [x] Confirm whether the requested matching Mugo Automobiles website should be created as a separate project or kept within the existing project (separate project confirmed).
+- [x] Create a separate matching website project based on the approved Mugo Automobiles reference site (standalone source created at `/home/ubuntu/mugo-automobiles-new`).
+- [x] Validate the separate MUGO AUTOMOBILES website and synchronize its completed source to GitHub (type check and production build passed; 26 tests passed; GitHub source expansion workflow run #7 succeeded).
+- [x] Verify the user-provided GitHub Pages destination after the standalone source is synchronized (profile-level Pages address currently returns GitHub Pages 404; no Pages site configured).
+- [x] Obtain approval to configure a GitHub Pages deployment for the separate website, or retain the standalone preview and managed deployment instead (managed full-stack hosting retained; GitHub Pages not configured).
+- [x] Confirm that the full MUGO AUTOMOBILES marketplace remains on managed full-stack hosting rather than GitHub Pages; the production homepage was verified reachable.
+- [x] Define more than 120 Kenya-relevant vehicle catalogue records as non-public inventory templates pending real stock verification.
+- [x] Add a safe dashboard-only import path for the expanded vehicle catalogue (idempotent stage action creates 180 draft-only templates and blocks their publication).
+- [x] Enhance and test the inventory dashboard for the expanded catalogue (28 tests, TypeScript check, production build, and component-level dashboard rendering verified).
+- [ ] Stage the 180 Kenya catalogue templates in the managed database through an authorized inventory staff session.
+- [ ] Verify the Kenya catalogue staging panel and publication safeguards in a real authenticated inventory staff browser session (preview evidence is recorded in `dashboard-catalogue-verification.md`).
+- [x] Add a public no-sign-in Kenya vehicle catalogue view that clearly distinguishes availability-pending templates from verified live stock (184 models and arrivals verified publicly; availability disclosure and check-availability states shown).
+- [ ] Synchronize the validated public Kenya catalogue and dashboard safeguards to maitethialeakey-droid/mugo-automobiles.

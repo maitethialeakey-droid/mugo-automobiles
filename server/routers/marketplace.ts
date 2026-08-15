@@ -24,6 +24,7 @@ import { getDb } from "../db";
 import { storagePut } from "../storage";
 import { adminProcedure, inventoryProcedure, protectedProcedure, publicProcedure, router, salesProcedure, staffProcedure, supportProcedure } from "../_core/trpc";
 import { createPaymentIntent, getPaymentProviderConfig, paymentProviders } from "../paymentIntegration";
+import { KENYA_CATALOGUE_TEMPLATES, isKenyaCatalogueTemplate } from "@shared/kenyaCatalogueTemplates";
 
 const vehicleStatuses = ["draft", "published", "archived"] as const;
 const vehicleAvailability = ["available", "reserved", "sold"] as const;
@@ -205,6 +206,11 @@ export const marketplaceRouter = router({
     updateStatus: inventoryProcedure.input(z.object({ vehicleId: z.number().int().positive(), status: z.enum(vehicleStatuses), availability: z.enum(vehicleAvailability).optional() })).mutation(async ({ input }) => {
       const db = await requireDb();
       const now = new Date();
+      if (input.status === "published") {
+        const vehicle = (await db.select().from(vehicles).where(eq(vehicles.id, input.vehicleId)).limit(1))[0];
+        if (!vehicle) throw new Error("Vehicle not found");
+        if (isKenyaCatalogueTemplate(vehicle.stockNumber)) throw new Error("Catalogue templates are not public listings. Replace the template stock number and complete VIN, price, media, condition, and availability verification before publishing.");
+      }
       await db.update(vehicles).set({ status: input.status, ...(input.availability ? { availability: input.availability } : {}), ...(input.status === "published" ? { publishedAt: now, listedAt: now } : {}) }).where(eq(vehicles.id, input.vehicleId));
       return { success: true };
     }),
@@ -212,6 +218,17 @@ export const marketplaceRouter = router({
       const db = await requireDb();
       await db.insert(vehicleViews).values({ vehicleId: input.vehicleId, viewerId: ctx.user?.id ?? null, source: input.source ?? "direct" });
       return { success: true };
+    }),
+  }),
+  catalogue: router({
+    stageKenyaDrafts: inventoryProcedure.mutation(async ({ ctx }) => {
+      const db = await requireDb();
+      const stockNumbers = KENYA_CATALOGUE_TEMPLATES.map(template => template.stockNumber);
+      const existing = stockNumbers.length ? await db.select({ stockNumber: vehicles.stockNumber }).from(vehicles).where(inArray(vehicles.stockNumber, stockNumbers)) : [];
+      const existingStockNumbers = new Set(existing.map(vehicle => vehicle.stockNumber));
+      const missing = KENYA_CATALOGUE_TEMPLATES.filter(template => !existingStockNumbers.has(template.stockNumber));
+      if (missing.length) await db.insert(vehicles).values(missing.map(template => ({ ...template, createdById: ctx.user.id, status: "draft" as const, availability: "available" as const })));
+      return { expected: KENYA_CATALOGUE_TEMPLATES.length, staged: missing.length, alreadyPresent: existing.length };
     }),
   }),
   uploads: router({

@@ -6,6 +6,7 @@ const state = vi.hoisted(() => ({
   role: "admin",
   path: "/admin",
   navigate: vi.fn(),
+  inventoryRows: [] as Array<{ id: number; year: number; make: string; model: string; location: string; stockNumber: string; vin: string | null; priceKsh: number; status: "draft" | "published"; media: Array<{ url: string }> }>,
   orderRows: [{ order: { id: 11, status: "reserved", agreedPriceKsh: 2500000 }, vehicle: { make: "Toyota", model: "Prado" }, payment: null }],
   inquiryRows: [{ inquiry: { id: 21, contactName: "Buyer", status: "open", message: "Please share the inspection report.", contactEmail: "buyer@example.com", contactPhone: null }, vehicle: { make: "Mazda", model: "CX-5" } }],
 }));
@@ -26,7 +27,8 @@ vi.mock("@/lib/trpc", () => ({
     useUtils: () => ({ marketplace: { vehicles: { adminList: { invalidate } }, admin: { summary: { invalidate } }, orders: { adminList: { invalidate } }, inquiries: { adminList: { invalidate } }, staff: { list: { invalidate } } } }),
     marketplace: {
       admin: { summary: { useQuery: () => ({ data: baseSummary }) } },
-      vehicles: { adminList: { useQuery: () => ({ data: [] }) }, create: { useMutation: () => mutation }, updateStatus: { useMutation: () => mutation }, clone: { useMutation: () => mutation } },
+      vehicles: { adminList: { useQuery: () => ({ data: state.inventoryRows }) }, create: { useMutation: () => mutation }, updateStatus: { useMutation: () => mutation }, clone: { useMutation: () => mutation } },
+      catalogue: { stageKenyaDrafts: { useMutation: () => mutation } },
       uploads: { upload: { useMutation: () => mutation } },
       orders: { adminList: { useQuery: () => ({ data: state.orderRows }) }, create: { useMutation: () => mutation }, updateStatus: { useMutation: () => mutation }, reconcilePayment: { useMutation: () => mutation }, generateDocument: { useMutation: () => mutation } },
       inquiries: { adminList: { useQuery: () => ({ data: state.inquiryRows }) } },
@@ -44,7 +46,7 @@ function render(role: string, path = "/admin") {
 }
 
 describe("AdminDashboard staff CTAs", () => {
-  beforeEach(() => state.navigate.mockReset());
+  beforeEach(() => { state.navigate.mockReset(); state.inventoryRows = []; });
 
   it("renders only the overview operations assigned to every staff role", () => {
     const admin = render("admin");
@@ -80,6 +82,8 @@ describe("AdminDashboard staff CTAs", () => {
     const inventory = render("inventory_manager", "/admin/inventory");
     expect(inventory).toContain("Add vehicle");
     expect(inventory).toContain("Store import");
+    expect(inventory).toContain("Kenya catalogue templates");
+    expect(inventory).toContain("Stage Kenya drafts");
     expect(inventory).toContain("Inventory lifecycle");
 
     const sales = render("sales_manager", "/admin/orders");
@@ -96,5 +100,13 @@ describe("AdminDashboard staff CTAs", () => {
     const admin = render("admin", "/admin/staff");
     expect(admin).toContain("Assign the right route to each staff member.");
     expect(admin).toContain("Team members appear here after they sign in for the first time.");
+  });
+
+  it("keeps unverified Kenya catalogue templates out of the publication flow", () => {
+    state.inventoryRows = [{ id: 701, year: 2020, make: "Toyota", model: "RAV4", location: "Verification required", stockNumber: "CAT-KE-TOYO-RAV4-2020", vin: null, priceKsh: 0, status: "draft", media: [] }];
+    const inventory = render("inventory_manager", "/admin/inventory");
+    expect(inventory).toContain("Verification required");
+    expect(inventory).toContain("Complete stock verification before publishing a catalogue template.");
+    expect(inventory).toContain('disabled=""');
   });
 });
